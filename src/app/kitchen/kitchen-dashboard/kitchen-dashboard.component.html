@@ -1,0 +1,69 @@
+<nav class="tabs">
+  <button
+    class="tab-btn left"
+    [class.active]="selectedTab === 'orders'"
+    (click)="selectedTab = 'orders'"
+  >
+    Pedidos
+  </button>
+  <button
+    class="tab-btn right"
+    [class.active]="selectedTab === 'dishes'"
+    (click)="selectedTab = 'dishes'"
+  >
+    Platos
+  </button>
+</nav>
+
+
+<h1 *ngIf="selectedTab === 'orders'" class="panel">Panel de Pedidos</h1>
+
+<div *ngIf="selectedTab === 'orders'" class="orders-container">
+  <h2 *ngIf="orders.length === 0">No hay órdenes realizadas</h2>
+  <app-order-card
+  *ngFor="let order of orders"
+  [order]="order"
+  (statusChange)="onStatusChange($event)">
+</app-order-card>
+</div>
+
+<!-- APARTADO PARA LOS PLATOS -->
+ <h1 *ngIf="selectedTab === 'dishes'" class="panel">Panel de Platos</h1>
+<div *ngIf="selectedTab === 'dishes'" class="menu-view">
+  <!-- BEBIDAS -->
+<div class="category-section bordered-group blue">
+  <div class="group-legend">Bebidas</div>
+  <div class="items-grid">
+    <div *ngFor="let item of bebidas" class="menu-item" (click)="speak(item.name)">
+      <img [src]="getImagePath(item.imageLink)" alt="{{ item.name }}">
+      <p>{{ item.name }}</p>
+    </div>
+  </div>
+
+  <h1>Complementos</h1>
+  <div class="items-grid">
+    <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name)">
+      <img [src]="getImagePath(mod.imageUrl)" alt="{{ mod.name }}">
+      <p>{{ mod.name }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- BOCADILLOS -->
+<div class="category-section bordered-group orange">
+  <div class="group-legend">Bocadillos</div>
+  <div class="items-grid">
+    <div *ngFor="let item of bocadillos" class="menu-item" (click)="speak(item.name)">
+      <img [src]="getImagePath(item.imageLink)" alt="{{ item.name }}">
+      <p>{{ item.name }}</p>
+    </div>
+  </div>
+
+  <h1 >Complementos</h1>
+  <div class="items-grid">
+    <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name)">
+      <img [src]="getImagePath(mod.imageUrl)" alt="{{ mod.name }}">
+      <p>{{ mod.name }}</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<fieldset class="order-card" [ngClass]="getStatusClass(order.status)">
+  <legend class="legend-top">{{ statusLabels[order.status] || 'Estado desconocido' }}</legend>
+  <div class="order-info">
+    <h2 class="pedido-header">
+      <span>Pedido {{ order.id }}</span>
+      <span class="time">Hora: {{ order.orderDate ? (order.orderDate | date: 'shortTime') : '---' }}</span>
+    </h2>
+    <p><strong>Profesor/a:</strong> {{ order.teacher.name }} {{ order.teacher.surnames }}</p>
+    <h3>Detalles</h3>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Cantidad</th>
+        <th>Producto</th>
+        <th>Ayuda Prod.</th>
+        <th>Descripción<br>(Modificadores)</th>
+        <th>Ayuda Mod.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let line of order.orderLines">
+        <td>{{ line.quantity }}</td>
+        <td>{{ line.itemName }}</td>
+        <td></td>
+        <td>
+          <ul>
+            <li *ngFor="let mod of line.lineModifiers">{{ mod.name }}</li>
+          </ul>
+        </td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="button-container">
+    <button (click)="abrirModalEstado()" class="estado-btn">Cambiar estado</button>
+  </div>
+</fieldset>
+
+<div class="estado-modal-overlay" *ngIf="mostrarModal">
+  <div class="estado-modal">
+    <h3>Selecciona nuevo estado</h3>
+    <div class="estado-opciones">
+      <button
+        *ngFor="let estado of getAvailableStatuses()"
+        [ngClass]="getStatusButtonClass(estado)"
+        (click)="cambiarEstadoA(estado)">
+        {{ statusLabels[estado] }}
+      </button>
+    </div>
+    <button class="cerrar-btn" (click)="cerrarModalEstado()">Cerrar</button>
+  </div>
+</div>

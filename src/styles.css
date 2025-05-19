@@ -1,1 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
+html,body {
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  background-image: url("./assets/fondoTFG.png");
+  background-size: 350px 300px;  /* Ajusta estos valores según el tamaño que desees */
+  background-repeat: repeat;
+  margin: 0;
+  height: 100%;
+  padding: 0;
+  overflow-x: hidden;
+}
