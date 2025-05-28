@@ -9,7 +9,7 @@ export class ModifierService {
   private baseUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
-
+// Sirve para obtener la lista de modificadores
   getModifiers(): Observable<Modifier[]> {
     return this.http.get<Modifier[]>(`${this.baseUrl}/modifiers`);
   }

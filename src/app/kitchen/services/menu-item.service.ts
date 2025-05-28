@@ -10,7 +10,12 @@ export class MenuItemService {
 
   constructor(private http: HttpClient) {}
 
+  //Para recibir todos los elementos del menú
   getMenuItems(): Observable<MenuItem[]> {
     return this.http.get<MenuItem[]>(`${this.baseUrl}/menu_items`);
+  }
+  //Para recibir la imagen de un elemento del menú por su ID
+  getMenuItemImage(id: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/item/${id}`, { responseType: 'blob' });
   }
 }

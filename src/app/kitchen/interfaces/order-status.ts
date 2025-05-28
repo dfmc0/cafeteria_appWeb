@@ -10,6 +10,6 @@ export const StatusCycle: OrderStatusString[] = [
 export const StatusLabelMap: Record<OrderStatusString, string> = {
   CANCELADO: 'Cancelado',
   FINALIZADO: 'Finalizado',
-  RECIBIDO: 'RECIBIDO',
-  EN_PREPARACION: 'EN_PREPARACION',
+  RECIBIDO: 'Recibido',
+  EN_PREPARACION: 'En Preparación',
 };

@@ -75,11 +75,26 @@ h1 {
   color: #333;
   text-align: center;
 }
+.refresh-btn {
+  margin-left: 12px;
+  background-color: white;
+  border-radius: 10px 10px 10px 10px;
+  border-color: #000 1px solid;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: black;
+  width: 50px;
+  height: 50px;
 
+}
+
+.refresh-btn:hover {
+  transform: scale(1.1);
+  transition: transform 0.3s;
+  color: #0056b3;
+}
 .orders-container h2 {
   width: 100%;
-  color: #777;
-  font-weight: normal;
 }
 
 
