@@ -144,14 +144,35 @@ h1 {
   text-align: center;
   width: 100px;
 }
-
-.menu-item img {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  border: #969696 solid 1px;
+.image-stack {
+  display: grid;
+  grid-template-columns: repeat(2, auto); /* ← 2 columnas */
+  gap: 10px;
+  justify-content: center;
+}
+.items-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 450px; /* ajusta según el tamaño de los items */
+  margin: auto;
+  margin-top: 20px;
+}
+.image-stack img {
+  width: 45px;
+  height: 45px;
   border-radius: 15px 15px 15px 15px;
   box-shadow: #a1a1a1 3px 3px 3px ;
+  border: #969696 solid 1px;
+}
+.menu-item > img {
+  width: 60px;
+  height: 60px;
+  box-shadow: #a1a1a1 3px 3px 3px;
+  transition: transform 0.3s;
+}
+.menu-item img {
+  box-shadow: #a1a1a1 3px 3px 3px;
   transition: transform 0.3s;
 }
 .menu-item img:hover {

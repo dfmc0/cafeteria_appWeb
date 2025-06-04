@@ -10,6 +10,7 @@ import { FooterComponent } from './layout/footer/footer.component';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { BasicAuthInterceptor } from './interceptors/basic-auth.interceptor';
 import { FormsModule } from '@angular/forms';
+import { ApiKeyInterceptor } from './interceptors/api-key.interceptor';
 
 @NgModule({
   declarations: [
@@ -26,12 +27,9 @@ import { FormsModule } from '@angular/forms';
     FormsModule    
   ],
   providers: [
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: BasicAuthInterceptor,
-      multi: true
-    }
-  ],
+  { provide: HTTP_INTERCEPTORS, useClass: ApiKeyInterceptor, multi: true },
+  { provide: HTTP_INTERCEPTORS, useClass: BasicAuthInterceptor, multi: true }
+],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -40,12 +40,14 @@
       <h2 *ngIf="bebidas.length === 0 && bocadillos.length === 0">No hay platos disponibles</h2>
       <h2 *ngIf="bebidas.length === 0">No hay bebidas disponibles</h2>
       <h2 *ngIf="bocadillos.length === 0">No hay bocadillos disponibles</h2></div>
-  <!-- BEBIDAS -->
-<div class="category-section bordered-group blue" *ngIf="bebidas.length > 0">
+<!-- BEBIDAS -->
+<div *ngIf="bebidas.length > 0" class="category-section bordered-group blue">
   <div class="group-legend">Bebidas</div>
   <div class="items-grid">
     <div *ngFor="let item of bebidas" class="menu-item" (click)="speak(item.name)">
-      <img [src]="getImagePath(item.imageLink)" alt="{{ item.name }}">
+      <div class="image-stack">
+        <img *ngFor="let img of getImages(item)" [src]="img" alt="{{ item.name }}">
+      </div>
       <p>{{ item.name }}</p>
     </div>
   </div>
@@ -53,26 +55,32 @@
   <h1>Complementos</h1>
   <div class="items-grid">
     <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name)">
-      <img [src]="getImagePath(mod.imageUrl)" alt="{{ mod.name }}">
+      <div class="image-stack">
+      <img [src]="getModifierImage(mod.id)" alt="{{ mod.name }}">
+      </div>
       <p>{{ mod.name }}</p>
     </div>
   </div>
 </div>
 
 <!-- BOCADILLOS -->
-<div class="category-section bordered-group orange" *ngIf="bocadillos.length > 0">
+<div *ngIf="bocadillos.length > 0" class="category-section bordered-group orange">
   <div class="group-legend">Bocadillos</div>
   <div class="items-grid">
     <div *ngFor="let item of bocadillos" class="menu-item" (click)="speak(item.name)">
-      <img [src]="getImagePath(item.imageLink)" alt="{{ item.name }}">
+      <div class="image-stack">
+        <img *ngFor="let img of getImages(item)" [src]="img" alt="{{ item.name }}">
+      </div>
       <p>{{ item.name }}</p>
     </div>
   </div>
 
-  <h1 >Complementos</h1>
+  <h1>Complementos</h1>
   <div class="items-grid">
     <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name)">
-      <img [src]="getImagePath(mod.imageUrl)" alt="{{ mod.name }}">
+       <div class="image-stack">
+      <img [src]="getModifierImage(mod.id)" alt="{{ mod.name }}">
+      </div>
       <p>{{ mod.name }}</p>
     </div>
   </div>

@@ -9,8 +9,12 @@ export class ModifierService {
   private baseUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
-// Sirve para obtener la lista de modificadores
+    // Sirve para obtener la lista de modificadores
   getModifiers(): Observable<Modifier[]> {
     return this.http.get<Modifier[]>(`${this.baseUrl}/modifiers`);
+  }
+  // Obtener la imagen de un elemento de los modificadores por ID
+  getModifierImage(id: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/image/modifier/${id}`, { responseType: 'blob' });
   }
 }

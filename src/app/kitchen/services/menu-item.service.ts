@@ -6,16 +6,21 @@ import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class MenuItemService {
+  getModifierImage(arg0: string) {
+    throw new Error('Method not implemented.');
+  }
   private baseUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
 
-  //Para recibir todos los elementos del menú
+  // Obtener todos los elementos del menú
   getMenuItems(): Observable<MenuItem[]> {
     return this.http.get<MenuItem[]>(`${this.baseUrl}/menu_items`);
   }
-  //Para recibir la imagen de un elemento del menú por su ID
+
+  // Obtener la imagen de un elemento del menú por ID
   getMenuItemImage(id: number): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/item/${id}`, { responseType: 'blob' });
+    return this.http.get(`${this.baseUrl}/image/item/${id}`, { responseType: 'blob' });
   }
+
 }

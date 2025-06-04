@@ -10,9 +10,10 @@
     <p><strong>Profesor/a:</strong> {{ order.teacher.name }} {{ order.teacher.surnames }}</p>
     <h3>Detalles</h3>
   </div>
-     <div class="mensaje-cambio" *ngIf="mostrarMensaje">
+     <div class="mensaje-cambio" *ngIf="mostrarMensaje" role="alert">
         {{ mensajeCambio }}
-    </div>
+      </div>
+
   <table>
     <thead>
       <tr>
@@ -27,9 +28,11 @@
       <tr *ngFor="let line of order.orderLines">
         <td>{{ line.quantity }}</td>
         <td>{{ line.itemName }}</td>
-        <td><div class="image-button">
-        <img [src]="getImagePath(line.itemName)" alt="{{ line.itemName }}" (click)="speak(line.itemName)">
-        </div></td>
+        <td>
+          <div class="image-button">
+             <img [src]="imageUrlsByMenuItemId[line.menu_item_id]" [alt]="line.itemName"  (click)="speak(line.itemName)"/>
+          </div>
+        </td>
         <td>
           <ul>
             <li *ngFor="let mod of line.lineModifiers">{{ mod.name }}</li>
@@ -37,9 +40,14 @@
         </td>
         <td>
           <div class="image-button">
-        <img *ngFor="let mod of line.lineModifiers" [src]="getImagePathP(mod.modifier.imageUrl)" alt="{{ mod.name }}" (click)="speak(mod.name)">
-        </div>
-      </td>
+            <img
+              *ngFor="let mod of line.lineModifiers"
+              [src]="getModifierImage(mod.modifier.id)"
+              alt="{{ mod.modifier.name }}"
+              (click)="speak(mod.modifier.name)"
+            />
+          </div>
+        </td>
       </tr>
     </tbody>
   </table>
@@ -54,12 +62,12 @@
     <h3>Selecciona nuevo estado</h3>
     <div class="estado-opciones">
       <button
-        *ngFor="let estado of getAvailableStatuses()"
-        [ngClass]="getStatusButtonClass(estado)"
-        (click)="cambiarEstadoA(estado)"
-        [disabled]="isUpdating">
-        {{ statusLabels[estado] }}
-      </button>
+      *ngFor="let estado of getAvailableStatuses()"
+      [ngClass]="getStatusButtonClass(estado)"
+      (click)="manejarEstadoAsync(estado)"
+      [disabled]="isUpdating">
+      {{ statusLabels[estado] }}
+  </button>
     </div>
     <button class="cerrar-btn" (click)="cerrarModalEstado()">Cerrar</button>
   </div>

@@ -7,4 +7,5 @@ export interface OrderLine {
   quantity: number;
   lineAmount: number;
   lineModifiers?: LineModifier[];
+  menu_item_id: number;
 }
