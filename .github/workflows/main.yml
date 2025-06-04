@@ -22,7 +22,7 @@ jobs:
         run: npm ci
 
       - name: Build Angular app
-        run: npm run build --configuration=production
+        run: ng build --configuration production -- --base-href /cuina/
 
       - name: Copy files via SSH (port 35001)
         uses: appleboy/scp-action@v0.1.7
