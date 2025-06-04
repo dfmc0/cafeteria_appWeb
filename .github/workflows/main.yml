@@ -31,8 +31,9 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 35001
-          source: "dist/cafeteria-app-web/*"
+          source: "dist/cafeteria-app-web/**"
           target: "/var/www/html/restauracio/cuina"
+          strip_components: 2
 
       - name: Reload Apache (via SSH on port 35001)
         uses: appleboy/ssh-action@v0.1.10
