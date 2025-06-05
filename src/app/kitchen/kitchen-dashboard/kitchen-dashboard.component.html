@@ -25,7 +25,7 @@
 </h1>
 
 <div *ngIf="selectedTab === 'orders'" class="orders-container">
-  <div class="category-section bordered-group" *ngIf="orders.length === 0"><h2 >No hay órdenes realizadas</h2></div>
+  <div class="category-section bordered-group" *ngIf="orders.length === 0"><h2 >No hay órdenes realizadas   </h2></div>
   <app-order-card
   *ngFor="let order of orders"
   [order]="order"
