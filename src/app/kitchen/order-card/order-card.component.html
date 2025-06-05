@@ -29,24 +29,31 @@
         <td>{{ line.quantity }}</td>
         <td>{{ line.itemName }}</td>
         <td>
-          <div class="image-button">
-             <img [src]="imageUrlsByMenuItemId[line.menu_item_id]" [alt]="line.itemName"  (click)="speak(line.itemName)"/>
+          <div class="image-stack">
+            <img class="image-button"
+                *ngFor="let img of getImagesFromOrder(line.menu_item_id, line.itemName)" 
+                [src]="img" 
+                (error)="onImageError($event)" 
+                alt="{{ line.itemName }}"
+                (click)="speak(line.itemName )"
+                (error)="onImageError($event)">
           </div>
         </td>
         <td>
           <ul>
-            <li *ngFor="let mod of line.lineModifiers">{{ mod.name }}</li>
+            <li *ngFor="let mod of line.lineModifiers">
+              {{ mod.name }}
+            </li>
           </ul>
         </td>
         <td>
-          <div class="image-button">
-            <img
-              *ngFor="let mod of line.lineModifiers"
-              [src]="getModifierImage(mod.modifier.id)"
-              alt="{{ mod.modifier.name }}"
-              (click)="speak(mod.modifier.name)"
-            />
-          </div>
+            <div *ngFor="let mod of line.lineModifiers" class="image-button" (click)="speak(mod.name )">
+              <img *ngFor="let img of getModifierImages(mod.modifier.id, mod.name)"
+                  [src]="img"
+                  (error)="onImageError($event)"
+                  alt="{{ mod.name }}"
+                  (error)="onImageError($event)">
+            </div>
         </td>
       </tr>
     </tbody>

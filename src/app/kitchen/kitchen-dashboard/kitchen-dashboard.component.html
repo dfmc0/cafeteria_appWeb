@@ -18,8 +18,11 @@
 
 <h1 *ngIf="selectedTab === 'orders'" class="panel">Panel de Pedidos
    <button class="refresh-btn" (click)="refrescarPedidos()" title="Refrescar pedidos">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 6V2L8 6l4 4V7c3.3 0 6 2.7 6 6 0 1.6-.6 3-1.7 4.2l1.4 1.4C19.1 17 20 14.6 20 12c0-4.4-3.6-8-8-8zm-6 6c0-1.6.6-3 1.7-4.2L6.3 6.4C4.9 7.8 4 10.2 4 12c0 4.4 3.6 8 8 8v4l4-4-4-4v3c-3.3 0-6-2.7-6-6z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+      <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
     </svg>
   </button>
 </h1>
@@ -42,11 +45,11 @@
       <h2 *ngIf="bocadillos.length === 0">No hay bocadillos disponibles</h2></div>
 <!-- BEBIDAS -->
 <div *ngIf="bebidas.length > 0" class="category-section bordered-group blue">
-  <div class="group-legend">Bebidas</div>
+  <div class="group-legend" (click)="speak(`Bebidas`)">Bebidas</div>
   <div class="items-grid">
     <div *ngFor="let item of bebidas" class="menu-item" (click)="speak(item.name)">
       <div class="image-stack">
-        <img *ngFor="let img of getImages(item)" [src]="img" alt="{{ item.name }}">
+        <img *ngFor="let img of getImages(item)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" [src]="img" alt="{{ item.name }}">
       </div>
       <p>{{ item.name }}</p>
     </div>
@@ -56,7 +59,7 @@
   <div class="items-grid">
     <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name)">
       <div class="image-stack">
-      <img [src]="getModifierImage(mod.id)" alt="{{ mod.name }}">
+      <img [src]="getModifierImage(mod.id)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)"  alt="{{ mod.name }}">
       </div>
       <p>{{ mod.name }}</p>
     </div>
@@ -65,21 +68,21 @@
 
 <!-- BOCADILLOS -->
 <div *ngIf="bocadillos.length > 0" class="category-section bordered-group orange">
-  <div class="group-legend">Bocadillos</div>
+  <div class="group-legend" (click)="speak(`Bocadillos`)">Bocadillos</div>
   <div class="items-grid">
     <div *ngFor="let item of bocadillos" class="menu-item" (click)="speak(item.name)">
       <div class="image-stack">
-        <img *ngFor="let img of getImages(item)" [src]="img" alt="{{ item.name }}">
+        <img *ngFor="let img of getImages(item)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)"  [src]="img" alt="{{ item.name }}">
       </div>
       <p>{{ item.name }}</p>
     </div>
   </div>
 
-  <h1>Complementos</h1>
+  <h1 (click)="speak(`Complementos`)">Complementos</h1>
   <div class="items-grid">
     <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name)">
        <div class="image-stack">
-      <img [src]="getModifierImage(mod.id)" alt="{{ mod.name }}">
+      <img [src]="getModifierImage(mod.id)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" alt="{{ mod.name }}">
       </div>
       <p>{{ mod.name }}</p>
     </div>

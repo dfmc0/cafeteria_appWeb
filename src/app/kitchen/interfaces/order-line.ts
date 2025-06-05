@@ -8,4 +8,3 @@ export interface OrderLine {
   lineAmount: number;
   lineModifiers?: LineModifier[];
   menu_item_id: number;
-}

@@ -29,6 +29,7 @@ export class OrderCardComponent implements OnChanges, OnInit {
 
   mensajeTimeout: ReturnType<typeof setTimeout> | undefined;
 
+  private readonly defaultImagePath = 'assets/images/Loading_icon.gif';
   constructor(
     private orderService: OrderService,
     private menuItemService: MenuItemService,
@@ -36,6 +37,7 @@ export class OrderCardComponent implements OnChanges, OnInit {
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
     private zone: NgZone
+    
   ) {}
 
   ngOnInit(): void {
@@ -93,21 +95,59 @@ export class OrderCardComponent implements OnChanges, OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error(Error);
+        console.error(err);
         cache[id] = null;
         this.cdr.detectChanges();
       }
     });
   }
 
-  getImage(menuItemId: number): SafeUrl | null {
-    return this.imageUrlsByMenuItemId[menuItemId] || null;
+  getImagesFromOrder(menuItemId: number, menuItemName: string): SafeUrl[] {
+  const images: SafeUrl[] = [];
+
+  const baseImage = this.imageUrlsByMenuItemId[menuItemId] || this.getStaticImage();
+    if (baseImage) {
+      images.push(baseImage);
+    }
+
+  const name = menuItemName.toLowerCase();
+
+    if (['poleo', 'manzanilla'].some(t => name.includes(t))) {
+      const teImage = this.getStaticImage('te.png');
+      if (teImage) images.push(teImage);
+    }
+
+    if (name.includes('café con leche') || name.includes('cortado')) {
+      const lecheImage = this.getStaticImage('leche.png');
+      if (lecheImage) images.push(lecheImage);
+    }
+
+     return images.length > 0 ? images : [this.getStaticImage()!];
+    }
+    
+  getStaticImage(filename?: string): SafeUrl {
+    const file = filename || this.defaultImagePath.split('/').pop(); // "Loading_icon.gif"
+    const fullPath = `assets/images/${file}`;
+    return this.sanitizer.bypassSecurityTrustUrl(fullPath);
   }
 
   getModifierImage(modifierId: number): SafeUrl | null {
     return this.modifierImageUrlsById[modifierId] || null;
   }
+  getModifierImages(modifierId: number, name: string): SafeUrl[] {
+    const image = this.getModifierImage(modifierId);
+    const images: SafeUrl[] = [];
 
+    if (image) images.push(image);
+
+    const lower = name.toLowerCase();
+    if (lower.includes('extra') || lower.includes('queso')) {
+      const extraImg = this.getStaticImage('extra.png');
+      if (extraImg) images.push(extraImg);
+    }
+
+    return images.length > 0 ? images : [this.getStaticImage()!];
+  }
   abrirModalEstado(): void {
     this.mostrarModal = true;
   }
@@ -154,10 +194,7 @@ export class OrderCardComponent implements OnChanges, OnInit {
         }
     }
 
-  // Ahora solo llama a cambiarEstadoA sin mostrar mensaje
-  handleStatusChangeClick(nuevoEstado: OrderStatusString): void {
-    this.cambiarEstadoA(nuevoEstado);
-  }
+  
 
   updateOrderStatus(orderId: number, status: OrderStatusString): void {
     this.isUpdating = true;
@@ -211,6 +248,10 @@ export class OrderCardComponent implements OnChanges, OnInit {
     this.cambioDesdeBoton = true;
     this.isUpdating = true;
     this.updateOrderStatus(this.order.id, nuevoEstado);
+  }
+  onImageError(event: Event) {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = this.defaultImagePath; // img.src necesita string, no SafeUrl
   }
 }
 
