@@ -59,25 +59,28 @@ export class KitchenDashboardComponent implements OnInit {
     this.loadModifiers();
   }
 
-  // loadOrders(): void {
-  //   this.orderService.getOrders().subscribe((data: Order[]) => {
-  //     this.orders = this.sortOrdersByStatus(data);
-  //   });
-  // }DEMOSTRACION
+  //DEMOSTRACION
   loadOrders(): void {
-  this.orderService.getOrders().subscribe((data: Order[]) => {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
-    
-    // Filtrar órdenes cuya fecha coincide con la fecha actual
-    const filteredOrders = data.filter(order => {
-      const orderDateStr = order.orderDate?.split('T')[0]; // ajustar según propiedad y formato
-      return orderDateStr === todayStr;
+    this.orderService.getOrders().subscribe((data: Order[]) => {
+      this.orders = this.sortOrdersByStatus(data);
     });
+  }
 
-    this.orders = this.sortOrdersByStatus(filteredOrders);
-  });
-}
+  // Carga solo las órdenes del día actual
+//   loadOrders(): void {
+//   this.orderService.getOrders().subscribe((data: Order[]) => {
+//     const today = new Date();
+//     const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    
+//     // Filtrar órdenes cuya fecha coincide con la fecha actual
+//     const filteredOrders = data.filter(order => {
+//       const orderDateStr = order.orderDate?.split('T')[0]; // ajustar según propiedad y formato
+//       return orderDateStr === todayStr;
+//     });
+
+//     this.orders = this.sortOrdersByStatus(filteredOrders);
+//   });
+// }
 
   loadMenuItems(): void {
     this.menuItemService.getMenuItems().subscribe((items: MenuItem[]) => {
