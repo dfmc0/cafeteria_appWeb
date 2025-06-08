@@ -1,4 +1,4 @@
-import { Component, OnInit, SimpleChanges, isDevMode } from '@angular/core'
+import { Component, OnInit, isDevMode } from '@angular/core';
 import { Order } from '../interfaces/order';
 import { OrderService } from '../services/order.service';
 import { MenuItem } from '../interfaces/menu-item';
@@ -8,6 +8,7 @@ import { ModifierService } from '../services/modifier.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ChangeDetectorRef } from '@angular/core';
 
+
 @Component({
   standalone: false,
   selector: 'app-kitchen-dashboard',
@@ -15,7 +16,22 @@ import { ChangeDetectorRef } from '@angular/core';
   styleUrls: ['./kitchen-dashboard.component.css']
 })
 export class KitchenDashboardComponent implements OnInit {
-  selectedTab = 'orders';
+  private _selectedTab: 'orders' | 'dishes' = 'orders';
+
+  get selectedTab(): 'orders' | 'dishes' {
+    this.showHelpButton = true; 
+    return this._selectedTab;
+  }
+
+  set selectedTab(value: 'orders' | 'dishes') {
+    if (this._selectedTab !== value) {
+      this._selectedTab = value;
+      this.showHelpButton = false; // Oculta ayuda al cambiar de pestaña
+    }
+  }
+
+  showHelp: boolean = false;
+  showHelpButton: boolean = false;
   orders: Order[] = [];
 
   bebidas: MenuItem[] = [];
@@ -23,10 +39,11 @@ export class KitchenDashboardComponent implements OnInit {
 
   bebidaModifiers: Modifier[] = [];
   bocadilloModifiers: Modifier[] = [];
-  // Cache para imágenes por menuItemId
-  imageUrlsByMenuItemId: { [menuItemId: number]: SafeUrl | null } = {};
-  modifierImageUrlsById: { [modifierId: number]: SafeUrl | null } = {};
-  
+
+  // Cache para imágenes por menuItemId y modifierId
+  imageUrlsByMenuItemId: { [id: number]: SafeUrl | null } = {};
+  modifierImageUrlsById: { [id: number]: SafeUrl | null } = {};
+
   private readonly defaultImagePath = 'assets/images/Loading_icon.gif';
 
   constructor(
@@ -36,12 +53,31 @@ export class KitchenDashboardComponent implements OnInit {
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef
   ) {}
-
-  loadOrders(): void {
-    this.orderService.getOrders().subscribe((data: Order[]) => {
-      this.orders = this.ordenarPorEstado(data);
-    });
+  ngOnInit(): void {
+    this.loadOrders();
+    this.loadMenuItems();
+    this.loadModifiers();
   }
+
+  // loadOrders(): void {
+  //   this.orderService.getOrders().subscribe((data: Order[]) => {
+  //     this.orders = this.sortOrdersByStatus(data);
+  //   });
+  // }DEMOSTRACION
+  loadOrders(): void {
+  this.orderService.getOrders().subscribe((data: Order[]) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    
+    // Filtrar órdenes cuya fecha coincide con la fecha actual
+    const filteredOrders = data.filter(order => {
+      const orderDateStr = order.orderDate?.split('T')[0]; // ajustar según propiedad y formato
+      return orderDateStr === todayStr;
+    });
+
+    this.orders = this.sortOrdersByStatus(filteredOrders);
+  });
+}
 
   loadMenuItems(): void {
     this.menuItemService.getMenuItems().subscribe((items: MenuItem[]) => {
@@ -63,71 +99,52 @@ export class KitchenDashboardComponent implements OnInit {
     const index = this.orders.findIndex(o => o.id === updatedOrder.id);
     if (index !== -1) {
       this.orders[index] = updatedOrder;
-      this.orders = this.ordenarPorEstado(this.orders);
+      this.orders = this.sortOrdersByStatus(this.orders);
     }
   }
 
-  ordenarPorEstado(orders: Order[]): Order[] {
-    const orden = ['RECIBIDO', 'EN_PREPARACION', 'FINALIZADO', 'CANCELADO'];
-    return orders.slice().sort((a, b) =>
-      orden.indexOf(a.status) - orden.indexOf(b.status)
-    );
-  }
+  sortOrdersByStatus(orders: Order[]): Order[] {
+    const orderPriority = ['RECIBIDO', 'EN_PREPARACION', 'FINALIZADO', 'CANCELADO'];
+    return orders.slice().sort((a, b) => {
+    const estadoDiff = orderPriority.indexOf(a.status) - orderPriority.indexOf(b.status);
 
-  ngOnInit(): void {
-    this.loadOrders();
-    this.loadMenuItems();
-    this.loadModifiers();
-  }
+      if (estadoDiff !== 0) {
+        return estadoDiff;
+      }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['order']) {
-      this.preloadMenuImages();
-    }
+      // Si tienen el mismo estado, ordenar por fecha (FIFO: más antiguo primero)
+      const dateA = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+      const dateB = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+      return dateB - dateA;
+    });
   }
 
   private preloadMenuImages(): void {
-    this.bebidas.forEach(item => {
+    [...this.bebidas, ...this.bocadillos].forEach(item => {
       if (item.id && !this.imageUrlsByMenuItemId[item.id]) {
-        this.loadImageByType(item.id, 'menuItem');
+        this.loadImage(item.id, 'menuItem');
       }
     });
 
-    this.bocadillos.forEach(item => {
-      if (item.id && !this.imageUrlsByMenuItemId[item.id]) {
-        this.loadImageByType(item.id, 'menuItem');
-      }
-    });
-
-    this.bebidaModifiers.forEach(mod => {
+    [...this.bebidaModifiers, ...this.bocadilloModifiers].forEach(mod => {
       if (mod.id && !this.modifierImageUrlsById[mod.id]) {
-        this.loadImageByType(mod.id, 'modifier');
-      }
-    });
-
-    this.bocadilloModifiers.forEach(mod => {
-      if (mod.id && !this.modifierImageUrlsById[mod.id]) {
-        this.loadImageByType(mod.id, 'modifier');
+        this.loadImage(mod.id, 'modifier');
       }
     });
   }
 
-  private loadImageByType(id: number, type: 'menuItem' | 'modifier'): void {
-    const cache =
-      type === 'menuItem' ? this.imageUrlsByMenuItemId : this.modifierImageUrlsById;
+  private loadImage(id: number, type: 'menuItem' | 'modifier'): void {
+    const cache = type === 'menuItem' ? this.imageUrlsByMenuItemId : this.modifierImageUrlsById;
 
     if (cache[id]) return;
 
-    const fetch$ =
-      type === 'menuItem'
-        ? this.menuItemService.getMenuItemImage(id)
-        : this.modifierService.getModifierImage(id);
+    const fetch$ = type === 'menuItem'
+      ? this.menuItemService.getMenuItemImage(id)
+      : this.modifierService.getModifierImage(id);
 
-    if (!fetch$ || typeof (fetch$ as any).subscribe !== 'function') {
-      return;
-    }
+    if (!fetch$ || typeof fetch$.subscribe !== 'function') return;
 
-    (fetch$ as import('rxjs').Observable<Blob>).subscribe({
+    fetch$.subscribe({
       next: (blob: Blob) => {
         const objectURL = URL.createObjectURL(blob);
         const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectURL);
@@ -136,9 +153,8 @@ export class KitchenDashboardComponent implements OnInit {
       },
       error: (err) => {
         if (isDevMode()) {
-          console.warn(`Error cargando imagen para ${type} ${id}:`, err);
+          console.warn(`Error loading ${type} image id ${id}:`, err);
         }
-        // Evitar reintentos infinitos asignando imagen default
         cache[id] = this.getStaticImage();
         this.cdr.detectChanges();
       }
@@ -147,11 +163,7 @@ export class KitchenDashboardComponent implements OnInit {
 
   getImages(menuItem: MenuItem): SafeUrl[] {
     const baseImage = this.imageUrlsByMenuItemId[menuItem.id] || this.getStaticImage();
-    const images: SafeUrl[] = [];
-
-    if (baseImage) {
-      images.push(baseImage);
-    }
+    const images: SafeUrl[] = [baseImage];
 
     const name = menuItem.name.toLowerCase();
 
@@ -170,8 +182,7 @@ export class KitchenDashboardComponent implements OnInit {
 
   private getStaticImage(filename?: string): SafeUrl {
     const file = filename || this.defaultImagePath.split('/').pop()!;
-    const fullPath = `assets/images/${file}`;
-    return this.sanitizer.bypassSecurityTrustUrl(fullPath);
+    return this.sanitizer.bypassSecurityTrustUrl(`assets/images/${file}`);
   }
 
   getModifierImage(modifierId: number): SafeUrl | null {
@@ -188,13 +199,23 @@ export class KitchenDashboardComponent implements OnInit {
     this.loadOrders();
   }
 
-  onImageError(event: Event) {
+  onImageError(event: Event): void {
     const imgElement = event.target as HTMLImageElement;
-    // Evitar loop infinito de carga de imagen default
     if (imgElement.src !== this.defaultImagePath) {
       imgElement.src = this.defaultImagePath;
     } else {
-      imgElement.onerror = null;
+      imgElement.onerror = null; // prevenir loop infinito
     }
   }
+
+  trackByOrderId(index: number, order: Order): number {
+    return order.id;
+  }
+   toggleHelp() {
+    this.showHelp = !this.showHelp;
+  }
+  handleHideOrder(orderId: number) {
+    this.orders = this.orders.filter(order => order.id !== orderId);
+  }
 }
+  

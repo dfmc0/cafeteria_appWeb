@@ -49,11 +49,14 @@
 .status-preparacion  { border-color: var(--preparacion); }
 .status-finalizado   { border-color: var(--finalizado); }
 
-.status-cancelado .legend-top    { background-color: var(--cancelado); }
-.status-recibido .legend-top     { background-color: var(--recibido); }
+.status-cancelado .legend-top    { background-color: var(--cancelado);}
+.status-recibido .legend-top     { background-color: var(--recibido); color: #fff;}
 .status-preparacion .legend-top  { background-color: var(--preparacion); }
 .status-finalizado .legend-top   { background-color: var(--finalizado); }
 
+.legend-top{
+  border: 2px solid #000;
+}
 /* === INFO ADICIONAL === */
 .order-info, .time {
   font-size: 0.9rem;
@@ -209,6 +212,44 @@ ul {
 }
 .mensaje-cambio.salir {
   animation: fadeOut 0.3s forwards;
+}
+
+
+.btn-ocultar {
+  position: absolute;
+  top: -30px;
+  right: 0px;
+  z-index: 10;
+}
+.btn-ocultar button {
+  background-color: #fff;
+  border: 1px solid #000;
+  font-size: 18px;
+  cursor: pointer;
+  color: #888;
+  border-radius: 5px;
+}
+.btn-ocultar button:hover {
+  color: #d00;
+}
+
+.btn-mostrar {
+  position: absolute;
+  top: -29px;
+  right: 2px;
+  z-index: 10;
+}
+.btn-mostrar button {
+  background-color: #fff;
+  border: 1px solid #000;
+  font-size: 18px;
+  cursor: pointer;
+  color: #000;
+  border-radius: 5px;
+}
+.btn-mostrar button:hover {
+  background-color: rgb(34, 92, 252);
+  color: #fff;
 }
 @keyframes fadeOut {
   from { opacity: 1; }

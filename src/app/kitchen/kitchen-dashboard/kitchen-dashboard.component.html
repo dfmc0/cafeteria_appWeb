@@ -15,76 +15,140 @@
   </button>
 </nav>
 
+<!-- PANEL PEDIDOS -->
+ <div class="header-row">
+<h2 *ngIf="selectedTab === 'orders'" class="panel" (click)="speak(`Panel de Pedidos`)"> Panel de Pedidos</h2>
+    <div class="refresh-btn" *ngIf="selectedTab === 'orders'">
+        <button  (click)="refrescarPedidos()" title="Refrescar pedidos" (click)="speak(`Botón de recargar`)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+              <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+            </svg>
+          </button>
+      </div> 
+  </div>
 
-<h1 *ngIf="selectedTab === 'orders'" class="panel">Panel de Pedidos
-   <button class="refresh-btn" (click)="refrescarPedidos()" title="Refrescar pedidos">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw">
-      <polyline points="23 4 23 10 17 10"></polyline>
-      <polyline points="1 20 1 14 7 14"></polyline>
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
-      <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
-    </svg>
-  </button>
-</h1>
+<div *ngIf="selectedTab === 'orders'">
+  <div class="help-button-container">
+    <button (click)="toggleHelp()" (click)="speak(`Botón de ayuda`)">
+      {{ showHelp ? 'Cerrar ayuda' : 'Mostrar ayuda' }}
+    </button>
+  </div>
 
-<div *ngIf="selectedTab === 'orders'" class="orders-container">
-  <div class="category-section bordered-group" *ngIf="orders.length === 0"><h2 >No hay órdenes realizadas   </h2></div>
-  <app-order-card
-  *ngFor="let order of orders"
-  [order]="order"
-  (statusChange)="onStatusChange($event)">
-</app-order-card>
+  <div class="help-box-wrapper" [class.open]="showHelp" >
+    <div class="help-box">
+      <p><strong>¿Cómo usar el panel de pedidos?  </strong></p>
+      <!--  <button class="read-help-btn" onclick="leerAyuda()">Leer ayuda</button> -->
+      <ul>
+        <li>
+          Los pedidos pueden tener diferentes <strong>estados</strong>:
+          <ul>
+            <li><span class="estado-color recibido"></span> <strong>Recibido</strong>: El pedido está esperando ser procesado.</li>
+            <li><span class="estado-color preparacion"></span> <strong>En Preparación</strong>: El pedido se está preparando.</li>
+            <li><span class="estado-color finalizado"></span> <strong>Finalizado</strong>: El pedido ha sido completado.</li>
+            <li><span class="estado-color cancelado"></span> <strong>Cancelado</strong>: El pedido fue cancelado.</li>
+          </ul>
+        </li>
+        <br>
+        <li>Cada elemento/comida está representado por un <strong>pictograma</strong>. Puedes hacer clic en el pictograma
+          para que se <strong>lea en voz alta</strong>, al igual que varias partes de la orden como el <strong>estado</strong> en la parte superior, el <strong>profesor</strong> y la <strong>hora</strong>.
+        </li>
+        <br>
+        <li>
+          Los pedidos con estado <strong>Finalizado</strong> o <strong>Cancelado</strong> se <strong> se ocultaran manualmente</strong>, y cuando se recargue la página o las ordenes con el bóton, se ocultarán automáticamente de la lista,
+           esto en caso de que se hayan marcado o ocultado por error.
+        </li>
+        <br>
+        <li>En el caso de haber ocultado una orden por <strong>error</strong> en las ordenes que se hayan <strong>ocultado</strong> aparecerá un boton que permitira hacer que este ya no sea <strong>ocultado</strong> una vez recargado y haya pasado el tiempo</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="orders-container">
+    <div class="category-section bordered-group" *ngIf="orders.length === 0"><h2>No hay órdenes realizadas</h2></div>
+    <app-order-card
+      *ngFor="let order of orders; trackBy: trackByOrderId"
+      [order]="order"
+      (statusChange)="onStatusChange($event)"
+      (hideOrder)="handleHideOrder($event)">
+    </app-order-card>
+  </div>
 </div>
 
-<!-- APARTADO PARA LOS PLATOS -->
- <h1 *ngIf="selectedTab === 'dishes'" class="panel">Panel de Platos</h1>
-  <div *ngIf="selectedTab === 'dishes'" class="menu-view">
-    <div *ngIf="selectedTab === 'dishes'&& bebidas.length === 0 || bocadillos.length === 0" class="category-section bordered-group">
+<!-- PANEL PLATOS -->
+<h2 *ngIf="selectedTab === 'dishes'" class="panel" (click)="speak(`Panel de Platos`)">Panel de Platos</h2>
+
+<div *ngIf="selectedTab === 'dishes'" >
+  <div class="help-button-container">
+    <button (click)="toggleHelp()">
+      {{ showHelp ? 'Cerrar ayuda' : 'Mostrar ayuda' }}
+    </button>
+  </div>
+
+  <div class="help-box-wrapper" [class.open]="showHelp">
+    <div class="help-box">
+      <p><strong>¿Cómo usar el panel de platos?</strong></p>
+      <ul>
+        <li>El panel de <strong>platos</strong> le brindará los elementos del <strong>menú</strong> que se le ofrece a la cafetería al igual que los <strong>modificadores</strong>.</li><br>
+        <li>Al igual que en el panel de pedidos tendrá los elementos del <strong>menú</strong> con sus respectivos <strong>pictogramas</strong>.</li><br>
+        <li>Los <strong>pictogramas</strong> de los <strong>platos</strong> y <strong>modificadores</strong> se pueden hacer clic para que se lean en voz alta.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="menu-view">
+    <div *ngIf="(bebidas.length === 0 || bocadillos.length === 0)" class="category-section bordered-group">
       <h2 *ngIf="bebidas.length === 0 && bocadillos.length === 0">No hay platos disponibles</h2>
       <h2 *ngIf="bebidas.length === 0">No hay bebidas disponibles</h2>
-      <h2 *ngIf="bocadillos.length === 0">No hay bocadillos disponibles</h2></div>
-<!-- BEBIDAS -->
-<div *ngIf="bebidas.length > 0" class="category-section bordered-group blue">
-  <div class="group-legend" (click)="speak(`Bebidas`)">Bebidas</div>
-  <div class="items-grid">
-    <div *ngFor="let item of bebidas" class="menu-item" (click)="speak(item.name)">
-      <div class="image-stack">
-        <img *ngFor="let img of getImages(item)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" [src]="img" alt="{{ item.name }}">
-      </div>
-      <p>{{ item.name }}</p>
+      <h2 *ngIf="bocadillos.length === 0">No hay bocadillos disponibles</h2>
     </div>
-  </div>
 
-  <h1>Complementos</h1>
-  <div class="items-grid">
-    <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name)">
-      <div class="image-stack">
-      <img [src]="getModifierImage(mod.id)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)"  alt="{{ mod.name }}">
+    <!-- BEBIDAS -->
+    <div *ngIf="bebidas.length > 0" class="category-section bordered-group blue">
+      <div class="group-legend" (click)="speak(`Bebidas`)">Bebidas</div>
+      <div class="items-grid">
+        <div *ngFor="let item of bebidas" class="menu-item" (click)="speak(item.name)">
+          <div class="image-stack">
+            <img *ngFor="let img of getImages(item) || ['assets/images/Loading_icon.gif']" (error)="onImageError($event)" [src]="img" alt="{{ item.name }}">
+          </div>
+          <p>{{ item.name }}</p>
+        </div>
       </div>
-      <p>{{ mod.name }}</p>
+
+      <h2 (click)="speak(`Complementos`)">Complementos</h2>
+      <div class="items-grid">
+        <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name)">
+          <div class="image-stack">
+            <img [src]="getModifierImage(mod.id) || 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" alt="{{ mod.name }}">
+          </div>
+          <p>{{ mod.name }}</p>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- BOCADILLOS -->
-<div *ngIf="bocadillos.length > 0" class="category-section bordered-group orange">
-  <div class="group-legend" (click)="speak(`Bocadillos`)">Bocadillos</div>
-  <div class="items-grid">
-    <div *ngFor="let item of bocadillos" class="menu-item" (click)="speak(item.name)">
-      <div class="image-stack">
-        <img *ngFor="let img of getImages(item)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)"  [src]="img" alt="{{ item.name }}">
+    <!-- BOCADILLOS -->
+    <div *ngIf="bocadillos.length > 0" class="category-section bordered-group orange">
+      <div class="group-legend" (click)="speak(`Bocadillos`)">Bocadillos</div>
+      <div class="items-grid">
+        <div *ngFor="let item of bocadillos" class="menu-item" (click)="speak(item.name)">
+          <div class="image-stack">
+            <img *ngFor="let img of getImages(item) || ['assets/images/Loading_icon.gif']" (error)="onImageError($event)" [src]="img" alt="{{ item.name }}">
+          </div>
+          <p>{{ item.name }}</p>
+        </div>
       </div>
-      <p>{{ item.name }}</p>
-    </div>
-  </div>
 
-  <h1 (click)="speak(`Complementos`)">Complementos</h1>
-  <div class="items-grid">
-    <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name)">
-       <div class="image-stack">
-      <img [src]="getModifierImage(mod.id)|| 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" alt="{{ mod.name }}">
+      <h2 (click)="speak(`Complementos`)">Complementos</h2>
+      <div class="items-grid">
+        <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name)">
+          <div class="image-stack">
+            <img [src]="getModifierImage(mod.id) || 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" alt="{{ mod.name }}">
+          </div>
+          <p>{{ mod.name }}</p>
+        </div>
       </div>
-      <p>{{ mod.name }}</p>
     </div>
   </div>
 </div>

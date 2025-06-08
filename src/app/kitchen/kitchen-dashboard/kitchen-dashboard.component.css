@@ -4,6 +4,10 @@
   text-align: center;
   min-height: 100vh;
   margin: 0 ;
+  --cancelado: #03A9F4;
+  --recibido: #757575;
+  --preparacion: #FF9800;
+  --finalizado: #4CAF50;
 }
 
 
@@ -69,26 +73,29 @@ nav.tabs {
   padding-right: 1rem;
 }
 
-h1 {
+h2 {
   margin-bottom: 1rem;
   font-size: 2rem;
   color: #333;
-  text-align: center;
 }
-.refresh-btn {
-  margin-left: 12px;
+.header-row {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+}
+.refresh-btn button {
+  /* margin-left: 12px; ← esto ya no es necesario */
   background-color: white;
-  border-radius: 10px 10px 10px 10px;
-  border-color: #000 1px solid;
+  border-radius: 10px;
+  border: 1px solid #000;
   font-size: 1.5rem;
   cursor: pointer;
   color: black;
   width: 70px;
   height: 70px;
-
 }
-
-.refresh-btn:hover {
+.refresh-btn button:hover {
   transform: scale(1.1);
   transition: transform 0.3s;
   color: #0056b3;
@@ -222,3 +229,71 @@ h1 {
   background-color: #FF9800;
   color: white;
 }
+.help-button-container {
+  text-align: left; 
+  position: relative; 
+  margin-left: 40px;
+}
+.help-button-container button {
+  background-color: #fff;
+  border: 1px solid #000;
+  border-radius: 10px;
+  padding: 10px;
+  animation: fadeIn 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
+}
+.help-button-container button:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.help-box-wrapper {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.help-box-wrapper.open {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+
+.read-help-btn {
+  background-color: #fff;
+  border: 1px solid #000;
+  border-radius: 10px;
+  padding: 10px;
+  animation: fadeIn 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
+}
+.help-box {
+  background-color: #f0f0f0;
+  padding: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  margin-left: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  width: 100%;
+  max-width: 600px;
+  text-align: left;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ccc;
+}
+.estado-color {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.cancelado     { background-color: var(--cancelado); }
+.recibido      { background-color: var(--recibido); }
+.preparacion   { background-color: var(--preparacion); }
+.finalizado    { background-color: var(--finalizado); }

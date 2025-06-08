@@ -1,4 +1,5 @@
 import { LineModifier } from "./line-modifier";
+import { MenuItem } from "./menu-item";
 
 export interface OrderLine {
   id: number;
@@ -7,5 +8,5 @@ export interface OrderLine {
   quantity: number;
   lineAmount: number;
   lineModifiers?: LineModifier[];
-  menu_item_id: number;
+  menuItem: MenuItem;
 }
