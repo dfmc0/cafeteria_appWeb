@@ -64,19 +64,19 @@
         <td>
           <ul>
             <li *ngFor="let mod of line.lineModifiers">
-              {{ mod.modifier?.name || mod.name || 'Modificador' }}
+              {{ mod.modifier.name || mod.name || 'Modificador' }}
             </li>
           </ul>
         </td>
 
         <!-- Imágenes de los modificadores -->
         <td>
-          <div *ngFor="let mod of line.lineModifiers" class="image-stack" (click)="speak(mod.modifier?.name || mod.name)">
+          <div *ngFor="let mod of line.lineModifiers" class="image-stack" (click)="speak(mod.modifier.name || mod.name)">
             <img
               class="image-button"
-              *ngFor="let img of getModifierImages(mod.modifier?.id || 0, mod.modifier?.name || mod.name || '')"
+              *ngFor="let img of getModifierImages(mod.modifier.id || 0, mod.modifier.name || mod.name || '')"
               [src]="img"
-              alt="{{ mod.modifier.name || mod.name }}"
+              alt="{{ mod.modifier.name || mod.name || 'Modificador' }}"
               (error)="onImageError($event)">
           </div>
         </td>

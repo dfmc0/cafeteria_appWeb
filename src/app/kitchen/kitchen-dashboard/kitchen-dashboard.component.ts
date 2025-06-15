@@ -9,6 +9,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ChangeDetectorRef } from '@angular/core';
 import { timer, Subscription } from 'rxjs';
 
+// ... todos los imports sin cambios ...
 @Component({
   standalone: false,
   selector: 'app-kitchen-dashboard',
@@ -19,7 +20,7 @@ export class KitchenDashboardComponent implements OnInit {
   private _selectedTab: 'orders' | 'dishes' = 'orders';
 
   get selectedTab(): 'orders' | 'dishes' {
-    this.showHelpButton = true; 
+    this.showHelpButton = true;
     return this._selectedTab;
   }
 
@@ -59,7 +60,7 @@ export class KitchenDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.loadOrders();
     this.loadMenuItems();
-    this.loadModifiers();
+    this.loadModifiers(); // solo precarga imágenes
 
     this.refreshSub = timer(0, 5000).subscribe(() => {
       this.checkForNewOrders();
@@ -70,7 +71,6 @@ export class KitchenDashboardComponent implements OnInit {
     this.refreshSub?.unsubscribe();
   }
 
-  //SOLO PARA DEMOSTRACION
   loadOrders(): void {
     this.orderService.getOrders().subscribe((data: Order[]) => {
       this.orders = this.sortOrdersByStatus(data);
@@ -79,35 +79,18 @@ export class KitchenDashboardComponent implements OnInit {
     });
   }
 
-
-  // Carga solo las órdenes del día actual
-//   loadOrders(): void {
-//   this.orderService.getOrders().subscribe((data: Order[]) => {
-//     const today = new Date();
-//     const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
-    
-//     // Filtrar órdenes cuya fecha coincide con la fecha actual
-//     const filteredOrders = data.filter(order => {
-//       const orderDateStr = order.orderDate?.split('T')[0]; // ajustar según propiedad y formato
-//       return orderDateStr === todayStr;
-//     });
-
-//     this.orders = this.sortOrdersByStatus(filteredOrders);
-//   });
-// }
-
   loadMenuItems(): void {
-  this.menuItemService.getMenuItems().subscribe((items: MenuItem[]) => {
-    this.bebidas = items.filter(i => i.category === 'DRINK');
-    this.bocadillos = items.filter(i => i.category === 'FOOD');
+    this.menuItemService.getMenuItems().subscribe((items: MenuItem[]) => {
+      this.bebidas = items.filter(i => i.category === 'DRINK');
+      this.bocadillos = items.filter(i => i.category === 'FOOD');
 
-    // Extraer modificadores únicos por categoría
-    this.bebidaModifiers = this.extractUniqueModifiers(this.bebidas);
-    this.bocadilloModifiers = this.extractUniqueModifiers(this.bocadillos);
+      this.bebidaModifiers = this.extractUniqueModifiers(this.bebidas);
+      this.bocadilloModifiers = this.extractUniqueModifiers(this.bocadillos);
+      
 
-    this.preloadMenuImages();
-  });
-}
+      this.preloadMenuImages();
+    });
+  }
 
   private extractUniqueModifiers(items: MenuItem[]): Modifier[] {
     const seen = new Set<number>();
@@ -124,10 +107,11 @@ export class KitchenDashboardComponent implements OnInit {
 
     return modifiers;
   }
+
   loadModifiers(): void {
     this.modifierService.getModifiers().subscribe((mods: Modifier[]) => {
-      this.bebidaModifiers = mods.slice(0, 4);
-      this.bocadilloModifiers = mods.slice(4);
+      // Ya no sobrescribimos bebidaModifiers ni bocadilloModifiers
+      // Solo sirve para precargar imágenes u otros usos
       this.preloadMenuImages();
     });
   }

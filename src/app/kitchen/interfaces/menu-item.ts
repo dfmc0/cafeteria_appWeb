@@ -1,11 +1,11 @@
 import { Modifier } from "./modifier";
 
 export interface MenuItem {
-    id: number;
-    name: string;
-    price: number;
-    imageLink: string;
-    have_modifiers: boolean;
-    category: string;
-    allowedModifiers: Modifier[];
+  id: number;
+  name: string;
+  price: number;
+  imageLink: string;
+  haveModifiers: boolean; 
+  category: string;
+  allowedModifiers: Modifier[]; 
 }
