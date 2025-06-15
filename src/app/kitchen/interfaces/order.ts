@@ -7,7 +7,8 @@ export interface Order {
   orderDate: string | null;       
   paymentDate: string | null;     
   totalAmount: number;
-  status: OrderStatusString; 
+  status: OrderStatusString;
+  teacherId: number; 
   teacher: Teacher;                
   orderLines: OrderLine[];
   

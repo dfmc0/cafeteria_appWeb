@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, Output, OnInit, OnDestroy, SimpleChanges } from '@angular/core';
 import { Order } from '../interfaces/order';
 import { OrderService } from '../services/order.service';
 import { StatusLabelMap, OrderStatusString } from '../interfaces/order-status';
@@ -6,6 +6,7 @@ import { MenuItemService } from '../services/menu-item.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ModifierService } from '../services/modifier.service';
 import { TeacherService } from '../services/teacher.service';
+import { Teacher } from '../interfaces/teacher';
 const STORAGE_KEY = 'ordenesOcultas';
 
 @Component({
@@ -78,21 +79,40 @@ export class OrderCardComponent implements OnInit, OnDestroy {
       clearInterval(this.refreshIntervalId);
     }
   }
-  private fetchTeacher(): void {
-    const teacherId = this.order.teacher?.id;
-    if ((!this.order.teacher?.name || !this.order.teacher) && teacherId && !this.fetchedTeacherIds.has(teacherId)) {
-      this.fetchedTeacherIds.add(teacherId);
-      this.teacherService.getTeacherById(teacherId).subscribe({
-        next: (teacher) => {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['order'] && this.order) {
+      this.loadTeacherIfNeeded();
+    }
+  }
+  private loadTeacherIfNeeded(): void {
+    if (!this.order.teacher && this.order.teacherId) {
+      this.teacherService.getTeacherById(this.order.teacherId).subscribe({
+        next: (teacher: Teacher) => {
           this.order.teacher = teacher;
           this.cdr.detectChanges();
         },
-        error: (err) => {
-          console.error(`Error al cargar Teacher con ID ${teacherId}:`, err);
+        error: err => {
+          console.error('Error cargando el profesor:', err);
         }
       });
     }
   }
+  private fetchTeacher(): void {
+      const teacherId = this.order.teacher?.id;
+      // Solo si no hay profesor o no tiene nombre y hay teacherId y no se ha pedido ya
+      if ((!this.order.teacher || !this.order.teacher.name) && teacherId && !this.fetchedTeacherIds.has(teacherId)) {
+        this.fetchedTeacherIds.add(teacherId);
+        this.teacherService.getTeacherById(teacherId).subscribe({
+          next: (teacher) => {
+            this.order.teacher = teacher;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error(`Error al cargar Teacher con ID ${teacherId}:`, err);
+          }
+        });
+      }
+    }
   private fetchMissingMenuItems(): void {
   if (!this.order?.orderLines) return;
 

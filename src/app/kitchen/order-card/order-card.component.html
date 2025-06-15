@@ -19,9 +19,12 @@
       </span>
     </h2>
 
-    <p *ngIf="order.teacher" (click)="speak(order.teacher.name + ' ' + order.teacher.surnames)">
-      <strong>Profesor/a:</strong> {{ order.teacher.name || 'N/A' }} {{ order.teacher.surnames || '' }}
+    <p *ngIf="order.teacher; else loadingTeacher" (click)="speak(order.teacher.name + ' ' + order.teacher.surnames)">
+  <strong>Profesor/a:</strong> {{ order.teacher.name || 'N/A' }} {{ order.teacher.surnames || '' }}
     </p>
+    <ng-template #loadingTeacher>
+      <p>Cargando profesor...</p>
+    </ng-template>
 
     <h3>Detalles</h3>
   </div>
