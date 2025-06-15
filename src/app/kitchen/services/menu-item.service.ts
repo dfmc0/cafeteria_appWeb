@@ -19,7 +19,7 @@ export class MenuItemService {
   }
 
   getMenuItemById(id: number): Observable<MenuItem> {
-    return this.http.get<MenuItem>(`${this.baseUrl}/menu-items/${id}`);
+    return this.http.get<MenuItem>(`${this.baseUrl}/menu_items/${id}`);
   }
   // Obtener la imagen de un elemento del menú por ID
   getMenuItemImage(id: number): Observable<Blob> {

@@ -76,7 +76,7 @@
               class="image-button"
               *ngFor="let img of getModifierImages(mod.modifier?.id || 0, mod.modifier?.name || mod.name || '')"
               [src]="img"
-              alt="{{ mod.modifier?.name || mod.name }}"
+              alt="{{ mod.modifier.name || mod.name }}"
               (error)="onImageError($event)">
           </div>
         </td>
