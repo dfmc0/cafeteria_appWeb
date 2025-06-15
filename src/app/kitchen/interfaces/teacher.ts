@@ -7,7 +7,7 @@ export interface Teacher {
   nickname: string;
   stage: {
     id: number;
-    stageName: string;
+    stage: string;
     colorTag: string;
   };
 }

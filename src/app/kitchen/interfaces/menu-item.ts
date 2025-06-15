@@ -7,5 +7,5 @@ export interface MenuItem {
     imageLink: string;
     have_modifiers: boolean;
     category: string;
-    modifiers: Modifier[];
+    allowedModifiers: Modifier[];
 }

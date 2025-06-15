@@ -1,4 +1,3 @@
-import { MenuItem } from "./menu-item";
 import { OrderLine } from "./order-line";
 import { OrderStatusString } from "./order-status";
 import { Teacher } from "./teacher";

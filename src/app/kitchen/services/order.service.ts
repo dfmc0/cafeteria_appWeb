@@ -31,7 +31,6 @@ export class OrderService {
   changeStatus(orderId: number, status: OrderStatusString): Observable<any> {
     const payload = { status };
     const url = `${this.baseUrl}/orders/${orderId}`;
-
     return this.http.patch(url, payload);
   }
 }

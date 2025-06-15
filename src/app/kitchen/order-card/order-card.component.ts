@@ -5,6 +5,7 @@ import { StatusLabelMap, OrderStatusString } from '../interfaces/order-status';
 import { MenuItemService } from '../services/menu-item.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ModifierService } from '../services/modifier.service';
+import { TeacherService } from '../services/teacher.service';
 const STORAGE_KEY = 'ordenesOcultas';
 
 @Component({
@@ -36,19 +37,25 @@ export class OrderCardComponent implements OnInit, OnDestroy {
 
   ordenesOriginales: Order[] = [];
   ordenesVisibles: Order[] = [];
-
+  private fetchedMenuItemIds = new Set<number>();
+  private fetchedModifierIds = new Set<number>();
+  private fetchedTeacherIds = new Set<number>();
   @Output() hideOrder = new EventEmitter<number>();
+
+  
   constructor(
     private orderService: OrderService,
     private menuItemService: MenuItemService,
     private modifierService: ModifierService,
+    private teacherService: TeacherService,
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.preloadImages();
-
+     this.fetchMissingMenuItems();
+     this.fetchTeacher();
     // Al iniciar, revisa si esta orden está en la lista de ocultadas:
     this.ocultadaLocalmente = this.estaOcultadaLocalmente();
 
@@ -71,7 +78,41 @@ export class OrderCardComponent implements OnInit, OnDestroy {
       clearInterval(this.refreshIntervalId);
     }
   }
+  private fetchTeacher(): void {
+    const teacherId = this.order.teacher?.id;
+    if ((!this.order.teacher?.name || !this.order.teacher) && teacherId && !this.fetchedTeacherIds.has(teacherId)) {
+      this.fetchedTeacherIds.add(teacherId);
+      this.teacherService.getTeacherById(teacherId).subscribe({
+        next: (teacher) => {
+          this.order.teacher = teacher;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error(`Error al cargar Teacher con ID ${teacherId}:`, err);
+        }
+      });
+    }
+  }
+  private fetchMissingMenuItems(): void {
+  if (!this.order?.orderLines) return;
 
+  this.order.orderLines.forEach(line => {
+    const id = line.menuItemId;
+    if (!line.menuItem && id && !this.fetchedMenuItemIds.has(id)) {
+      this.fetchedMenuItemIds.add(id); // evita repetir
+      this.menuItemService.getMenuItemById(id).subscribe({
+        next: (menuItem) => {
+          line.menuItem = menuItem;
+          this.loadImageByType(menuItem.id, menuItem.id, 'menuItem');
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error(`Error al cargar MenuItem con ID ${id}:`, err);
+        }
+      });
+    }
+  });
+}
   private preloadImages(): void {
     if (!this.order?.orderLines) return;
 
@@ -83,47 +124,72 @@ export class OrderCardComponent implements OnInit, OnDestroy {
 
       line.lineModifiers?.forEach(mod => {
         const id = mod.modifier?.id;
-        const imageUrl = mod.modifier?.imageUrl;
-        if (id && imageUrl) {
-          this.loadImageByType(id, imageUrl, 'modifier');
+        if (id && mod.modifier?.imageUrl && !this.fetchedModifierIds.has(id)) {
+          this.fetchedModifierIds.add(id);
+          this.loadImageByType(id, id, 'modifier');
         }
       });
     });
   }
 
-  private loadImageByType(
-    id: number,
-    imageUrlOrId: string | number,
-    type: 'menuItem' | 'modifier'
-  ): void {
-    const cache =
-      type === 'menuItem' ? this.imageUrlsByMenuItemId : this.modifierImageUrlsById;
+  private loadImageByType(id: number,imageUrlOrId: string | number,type: 'menuItem' | 'modifier'): void {
+      const cache =
+        type === 'menuItem' ? this.imageUrlsByMenuItemId : this.modifierImageUrlsById;
 
-    if (cache[id]) return;
+      if (cache[id]) return;
 
-    const fetch$ =
-      type === 'menuItem'
-        ? this.menuItemService.getMenuItemImage(imageUrlOrId as number)
-        : this.modifierService.getModifierImage(id);
+      if (type === 'menuItem') {
+        // Ya tienes el ID, puedes pedir imagen directamente
+        this.menuItemService.getMenuItemImage(id).subscribe({
+          next: (blob: Blob) => {
+            const objectURL = URL.createObjectURL(blob);
+            const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectURL);
+            this.imageUrlsByMenuItemId[id] = safeUrl;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error(`Error al cargar imagen de MenuItem con ID ${id}:`, err);
+            this.imageUrlsByMenuItemId[id] = null;
+            this.cdr.detectChanges();
+          }
+        });
+      } else {
+        // MODIFIER: verificar si ya está cargado el objeto completo
+        const maybeId = typeof imageUrlOrId === 'number' ? imageUrlOrId : id;
 
-    if (!fetch$ || typeof (fetch$ as any).subscribe !== 'function') {
-      return;
+        // Si no hay imageUrl, buscamos el modifier completo
+        this.modifierService.getModifierById(maybeId).subscribe({
+          next: (modifier) => {
+            const modifierImageUrl = modifier.imageUrl;
+            if (!modifierImageUrl) {
+              this.modifierImageUrlsById[id] = null;
+              this.cdr.detectChanges();
+              return;
+            }
+
+            this.modifierService.getModifierImage(id).subscribe({
+              next: (blob: Blob) => {
+                const objectURL = URL.createObjectURL(blob);
+                const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectURL);
+                this.modifierImageUrlsById[id] = safeUrl;
+                this.cdr.detectChanges();
+              },
+              error: (err) => {
+                console.error(`Error al cargar imagen del modifier con ID ${id}:`, err);
+                this.modifierImageUrlsById[id] = null;
+                this.cdr.detectChanges();
+              }
+            });
+          },
+          error: (err) => {
+            console.error(`Error al cargar datos del modifier con ID ${maybeId}:`, err);
+            this.modifierImageUrlsById[id] = null;
+            this.cdr.detectChanges();
+          }
+        });
+      }
     }
 
-    (fetch$ as import('rxjs').Observable<Blob>).subscribe({
-      next: (blob: Blob) => {
-        const objectURL = URL.createObjectURL(blob);
-        const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectURL);
-        cache[id] = safeUrl;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error(err);
-        cache[id] = null;
-        this.cdr.detectChanges();
-      }
-    });
-  }
 
   getImagesFromOrder(menuItem: { id: number, name: string }): SafeUrl[] {
     const images: SafeUrl[] = [];

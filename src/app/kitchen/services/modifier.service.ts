@@ -13,6 +13,9 @@ export class ModifierService {
   getModifiers(): Observable<Modifier[]> {
     return this.http.get<Modifier[]>(`${this.baseUrl}/modifiers`);
   }
+  getModifierById(id: number): Observable<Modifier> {
+      return this.http.get<Modifier>(`${this.baseUrl}/modifiers/${id}`);
+    }
   // Obtener la imagen de un elemento de los modificadores por ID
   getModifierImage(id: number): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/image/modifier/${id}`, { responseType: 'blob' });

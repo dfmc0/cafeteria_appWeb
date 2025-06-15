@@ -7,7 +7,7 @@ import { MenuItemService } from '../services/menu-item.service';
 import { ModifierService } from '../services/modifier.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ChangeDetectorRef } from '@angular/core';
-
+import { timer, Subscription } from 'rxjs';
 
 @Component({
   standalone: false,
@@ -26,7 +26,7 @@ export class KitchenDashboardComponent implements OnInit {
   set selectedTab(value: 'orders' | 'dishes') {
     if (this._selectedTab !== value) {
       this._selectedTab = value;
-      this.showHelpButton = false; // Oculta ayuda al cambiar de pestaña
+      this.showHelpButton = false;
     }
   }
 
@@ -40,11 +40,13 @@ export class KitchenDashboardComponent implements OnInit {
   bebidaModifiers: Modifier[] = [];
   bocadilloModifiers: Modifier[] = [];
 
-  // Cache para imágenes por menuItemId y modifierId
   imageUrlsByMenuItemId: { [id: number]: SafeUrl | null } = {};
   modifierImageUrlsById: { [id: number]: SafeUrl | null } = {};
 
   private readonly defaultImagePath = 'assets/images/Loading_icon.gif';
+  private lastOrderId = 0;
+  private lastOrderHash = '';
+  private refreshSub?: Subscription;
 
   constructor(
     private orderService: OrderService,
@@ -53,18 +55,30 @@ export class KitchenDashboardComponent implements OnInit {
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef
   ) {}
+
   ngOnInit(): void {
     this.loadOrders();
     this.loadMenuItems();
     this.loadModifiers();
+
+    this.refreshSub = timer(0, 5000).subscribe(() => {
+      this.checkForNewOrders();
+    });
   }
 
-  //DEMOSTRACION
+  ngOnDestroy(): void {
+    this.refreshSub?.unsubscribe();
+  }
+
+  //SOLO PARA DEMOSTRACION
   loadOrders(): void {
     this.orderService.getOrders().subscribe((data: Order[]) => {
       this.orders = this.sortOrdersByStatus(data);
+      this.lastOrderId = data.length > 0 ? Math.max(...data.map(o => o.id)) : 0;
+      this.lastOrderHash = this.generateOrderHash(data);
     });
   }
+
 
   // Carga solo las órdenes del día actual
 //   loadOrders(): void {
@@ -83,13 +97,33 @@ export class KitchenDashboardComponent implements OnInit {
 // }
 
   loadMenuItems(): void {
-    this.menuItemService.getMenuItems().subscribe((items: MenuItem[]) => {
-      this.bebidas = items.filter(i => i.category === 'DRINK');
-      this.bocadillos = items.filter(i => i.category === 'FOOD');
-      this.preloadMenuImages();
-    });
-  }
+  this.menuItemService.getMenuItems().subscribe((items: MenuItem[]) => {
+    this.bebidas = items.filter(i => i.category === 'DRINK');
+    this.bocadillos = items.filter(i => i.category === 'FOOD');
 
+    // Extraer modificadores únicos por categoría
+    this.bebidaModifiers = this.extractUniqueModifiers(this.bebidas);
+    this.bocadilloModifiers = this.extractUniqueModifiers(this.bocadillos);
+
+    this.preloadMenuImages();
+  });
+}
+
+  private extractUniqueModifiers(items: MenuItem[]): Modifier[] {
+    const seen = new Set<number>();
+    const modifiers: Modifier[] = [];
+
+    items.forEach(item => {
+      item.allowedModifiers?.forEach(mod => {
+        if (!seen.has(mod.id)) {
+          seen.add(mod.id);
+          modifiers.push(mod);
+        }
+      });
+    });
+
+    return modifiers;
+  }
   loadModifiers(): void {
     this.modifierService.getModifiers().subscribe((mods: Modifier[]) => {
       this.bebidaModifiers = mods.slice(0, 4);
@@ -109,13 +143,9 @@ export class KitchenDashboardComponent implements OnInit {
   sortOrdersByStatus(orders: Order[]): Order[] {
     const orderPriority = ['RECIBIDO', 'EN_PREPARACION', 'FINALIZADO', 'CANCELADO'];
     return orders.slice().sort((a, b) => {
-    const estadoDiff = orderPriority.indexOf(a.status) - orderPriority.indexOf(b.status);
+      const estadoDiff = orderPriority.indexOf(a.status) - orderPriority.indexOf(b.status);
+      if (estadoDiff !== 0) return estadoDiff;
 
-      if (estadoDiff !== 0) {
-        return estadoDiff;
-      }
-
-      // Si tienen el mismo estado, ordenar por fecha (FIFO: más antiguo primero)
       const dateA = a.orderDate ? new Date(a.orderDate).getTime() : 0;
       const dateB = b.orderDate ? new Date(b.orderDate).getTime() : 0;
       return dateB - dateA;
@@ -138,7 +168,6 @@ export class KitchenDashboardComponent implements OnInit {
 
   private loadImage(id: number, type: 'menuItem' | 'modifier'): void {
     const cache = type === 'menuItem' ? this.imageUrlsByMenuItemId : this.modifierImageUrlsById;
-
     if (cache[id]) return;
 
     const fetch$ = type === 'menuItem'
@@ -169,7 +198,6 @@ export class KitchenDashboardComponent implements OnInit {
     const images: SafeUrl[] = [baseImage];
 
     const name = menuItem.name.toLowerCase();
-
     if (['poleo', 'manzanilla'].some(t => name.includes(t))) {
       const teImage = this.getStaticImage('te.png');
       if (teImage) images.push(teImage);
@@ -180,7 +208,7 @@ export class KitchenDashboardComponent implements OnInit {
       if (lecheImage) images.push(lecheImage);
     }
 
-    return images.length > 0 ? images : [this.getStaticImage()!];
+    return images;
   }
 
   private getStaticImage(filename?: string): SafeUrl {
@@ -207,18 +235,34 @@ export class KitchenDashboardComponent implements OnInit {
     if (imgElement.src !== this.defaultImagePath) {
       imgElement.src = this.defaultImagePath;
     } else {
-      imgElement.onerror = null; // prevenir loop infinito
+      imgElement.onerror = null;
     }
   }
 
   trackByOrderId(index: number, order: Order): number {
     return order.id;
   }
-   toggleHelp() {
+
+  toggleHelp() {
     this.showHelp = !this.showHelp;
   }
+
   handleHideOrder(orderId: number) {
     this.orders = this.orders.filter(order => order.id !== orderId);
   }
+
+  private generateOrderHash(orders: Order[]): string {
+    return orders.map(o => `${o.id}-${o.status}-${o.orderDate}`).join('|');
+  }
+
+  checkForNewOrders(): void {
+    this.orderService.getOrders().subscribe((data: Order[]) => {
+      const newHash = this.generateOrderHash(data);
+      if (newHash !== this.lastOrderHash) {
+        this.orders = this.sortOrdersByStatus(data);
+        this.lastOrderId = data.length > 0 ? Math.max(...data.map(o => o.id)) : 0;
+        this.lastOrderHash = newHash;
+      }
+    });
+  }
 }
-  

@@ -18,6 +18,9 @@ export class MenuItemService {
     return this.http.get<MenuItem[]>(`${this.baseUrl}/menu_items`);
   }
 
+  getMenuItemById(id: number): Observable<MenuItem> {
+    return this.http.get<MenuItem>(`${this.baseUrl}/menu-items/${id}`);
+  }
   // Obtener la imagen de un elemento del menú por ID
   getMenuItemImage(id: number): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/image/item/${id}`, { responseType: 'blob' });
