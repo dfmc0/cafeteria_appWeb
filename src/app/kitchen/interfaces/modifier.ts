@@ -1,6 +1,6 @@
 export interface Modifier {
     id: number;
-    name: string;
+    name?: string;
     priceIncrement: number;
     imageUrl: string;
 }

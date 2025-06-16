@@ -119,7 +119,7 @@
 
       <h2 (click)="speak(`Complementos`)">Complementos</h2>
       <div class="items-grid">
-        <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name)">
+        <div *ngFor="let mod of bebidaModifiers" class="menu-item" (click)="speak(mod.name || '')">
           <div class="image-stack">
             <img [src]="getModifierImage(mod.id) || 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" alt="{{ mod.name }}">
           </div>
@@ -142,7 +142,7 @@
 
       <h2 (click)="speak(`Complementos`)">Complementos</h2>
       <div class="items-grid">
-        <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name)">
+        <div *ngFor="let mod of bocadilloModifiers" class="menu-item" (click)="speak(mod.name ?? '')">
           <div class="image-stack">
             <img [src]="getModifierImage(mod.id) || 'assets/images/Loading_icon.gif'" (error)="onImageError($event)" alt="{{ mod.name }}">
           </div>

@@ -1,6 +1,6 @@
 export interface Teacher {
   id: number;
-  name: string;
+  name?: string;
   surnames: string;
   email: string | null;
   image_link: string;

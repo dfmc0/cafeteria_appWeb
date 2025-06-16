@@ -73,7 +73,7 @@ export class KitchenDashboardComponent implements OnInit {
 
   loadOrders(): void {
     this.orderService.getOrders().subscribe((data: Order[]) => {
-      this.orders = this.sortOrdersByStatus(data);
+      this.syncOrders(data);
       this.lastOrderId = data.length > 0 ? Math.max(...data.map(o => o.id)) : 0;
       this.lastOrderHash = this.generateOrderHash(data);
     });
@@ -110,17 +110,25 @@ export class KitchenDashboardComponent implements OnInit {
 
   loadModifiers(): void {
     this.modifierService.getModifiers().subscribe((mods: Modifier[]) => {
-      // Ya no sobrescribimos bebidaModifiers ni bocadilloModifiers
-      // Solo sirve para precargar imágenes u otros usos
+
       this.preloadMenuImages();
     });
   }
 
   onStatusChange(updatedOrder: Order): void {
-    const index = this.orders.findIndex(o => o.id === updatedOrder.id);
-    if (index !== -1) {
-      this.orders[index] = updatedOrder;
-      this.orders = this.sortOrdersByStatus(this.orders);
+    const order = this.orders.find(o => o.id === updatedOrder.id);
+    if (order) {
+      Object.assign(order, updatedOrder);
+      // Si necesitas reordenar visualmente, haz solo un sort IN PLACE:
+      this.orders.sort((a, b) => {
+        const orderPriority = ['RECIBIDO', 'EN_PREPARACION', 'FINALIZADO', 'CANCELADO'];
+        const estadoDiff = orderPriority.indexOf(a.status) - orderPriority.indexOf(b.status);
+        if (estadoDiff !== 0) return estadoDiff;
+
+        const dateA = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+        const dateB = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+        return dateB - dateA;
+      });
     }
   }
 
@@ -249,4 +257,26 @@ export class KitchenDashboardComponent implements OnInit {
       }
     });
   }
+  private syncOrders(newOrders: Order[]): void {
+  // Actualiza existentes y añade nuevos
+  newOrders.forEach(newOrder => {
+    const existing = this.orders.find(o => o.id === newOrder.id);
+    if (existing) {
+      Object.assign(existing, newOrder);
+    } else {
+      this.orders.push(newOrder);
+    }
+  });
+  // Elimina los que ya no existen
+  this.orders = this.orders.filter(o => newOrders.some(n => n.id === o.id));
+  // Ordena in place
+  this.orders.sort((a, b) => {
+    const orderPriority = ['RECIBIDO', 'EN_PREPARACION', 'FINALIZADO', 'CANCELADO'];
+    const estadoDiff = orderPriority.indexOf(a.status) - orderPriority.indexOf(b.status);
+    if (estadoDiff !== 0) return estadoDiff;
+    const dateA = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+    const dateB = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+    return dateB - dateA;
+  });
+}
 }

@@ -19,9 +19,9 @@
       </span>
     </h2>
 
-    <p *ngIf="order.teacher; else loadingTeacher" (click)="speak(order.teacher.name + ' ' + order.teacher.surnames)">
-  <strong>Profesor/a:</strong> {{ order.teacher.name || 'N/A' }} {{ order.teacher.surnames || '' }}
-    </p>
+    <p [class.cargando]="getTeacherName() === 'Cargando...'">
+    <strong>Profesor/a:</strong> {{ getTeacherName() }} {{ getTeacherSurnames() }}
+  </p>
     <ng-template #loadingTeacher>
       <p>Cargando profesor...</p>
     </ng-template>
@@ -48,7 +48,7 @@
         <td>{{ line.quantity }}</td>
 
         <!-- Nombre del producto -->
-        <td>{{ line.menuItem?.name || 'Cargando...' }}</td>
+        <td>{{ getMenuItemName(line) }}</td>
 
         <!-- Imagen del producto -->
         <td>
@@ -65,22 +65,27 @@
 
         <!-- Nombres de los modificadores -->
         <td>
-          <ul>
-            <li *ngFor="let mod of line.lineModifiers">
-              {{ mod.modifier.name || mod.name || 'Modificador' }}
+          <ul *ngIf="(line.lineModifiers?.length ?? 0) > 0; else noMods">
+            <li *ngFor="let mod of line.lineModifiers ?? []">
+              {{ getModifierName(mod) }}
             </li>
           </ul>
+          <ng-template #noMods>
+            <em>Sin modificadores</em>
+          </ng-template>
         </td>
 
         <!-- Imágenes de los modificadores -->
         <td>
-          <div *ngFor="let mod of line.lineModifiers" class="image-stack" (click)="speak(mod.modifier.name || mod.name)">
-            <img
-              class="image-button"
-              *ngFor="let img of getModifierImages(mod.modifier.id || 0, mod.modifier.name || mod.name || '')"
-              [src]="img"
-              alt="{{ mod.modifier.name || mod.name || 'Modificador' }}"
-              (error)="onImageError($event)">
+          <div *ngIf="line.lineModifiers?.length ?? 0">
+            <div *ngFor="let mod of line.lineModifiers" class="image-stack" (click)="speak(mod.modifier?.name || mod.name)">
+              <img
+                class="image-button"
+                *ngFor="let img of getModifierImages(mod.modifier?.id ?? mod.modifierId ?? 0, mod.modifier?.name || mod.name || '')"
+                [src]="img"
+                alt="{{ mod.modifier?.name || mod.name || 'Modificador' }}"
+                (error)="onImageError($event)">
+            </div>
           </div>
         </td>
       </tr>

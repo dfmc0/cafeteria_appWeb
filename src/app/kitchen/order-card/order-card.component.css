@@ -6,7 +6,6 @@
   font-family: 'Poppins', sans-serif;
 }
 
-/* === CARD PRINCIPAL === */
 .order-card {
   border: 2px solid #ccc;
   border-radius: 8px;
@@ -14,8 +13,16 @@
   margin-bottom: 2rem;
   background-color: #f9f9f9;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, min-height 0.2s;
   position: relative;
+  min-height: 200px;      /* Ajusta según tu contenido */
+  max-width: 540px;       /* Para quepan 3 en la mayoría de pantallas */
+  min-width: 300px;
+  width: 100%;
+  margin: 12px;
+  display: inline-block;
+  vertical-align: top;
+  box-sizing: border-box;
 }
 
 /* === ENCABEZADO Y LEYENDA === */
@@ -69,6 +76,14 @@
 .order-info p{
   font-size: 1.5rem;
   text-align: left;
+  transition: opacity 0.2s;
+}
+.order-info p strong {
+  display: inline-block;
+  min-width: 120px; /* Ajusta según el nombre más largo esperado */
+}
+.order-info p.cargando {
+  opacity: 0.5;
 }
 /* === TABLA === */
 table {
@@ -108,7 +123,19 @@ ul {
   transform: scale(1.1);
   cursor: pointer;
 }
-
+.menu-item-images {
+  display: flex;
+  gap: 4px;
+  min-width: 110px; /* 2 imágenes de 50px + gap */
+  min-height: 50px;
+  align-items: center;
+  justify-content: flex-start;
+}
+.menu-item-images img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
 /* === BOTONES DE CAMBIO DE ESTADO === */
 .order-box {
   position: relative;

@@ -7,6 +7,11 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ModifierService } from '../services/modifier.service';
 import { TeacherService } from '../services/teacher.service';
 import { Teacher } from '../interfaces/teacher';
+import { OrderLine } from '../interfaces/order-line';
+import { catchError, forkJoin, of } from 'rxjs';
+import { MenuCacheService } from '../services/menu-cache.service';
+import { TeacherCacheService } from '../services/teacher-cache.service';
+
 const STORAGE_KEY = 'ordenesOcultas';
 
 @Component({
@@ -17,246 +22,191 @@ const STORAGE_KEY = 'ordenesOcultas';
 })
 export class OrderCardComponent implements OnInit, OnDestroy {
 
-  @Input() order!: Order & { statusChangedAt?: Date | null }; // <-- Añadido campo opcional statusChangedAt
+  @Input() order!: Order & { statusChangedAt?: Date | null };
   @Output() statusChange = new EventEmitter<Order>();
+  @Output() hideOrder = new EventEmitter<number>();
 
   isUpdating = false;
+  isLoading = true;
   statusLabels = StatusLabelMap;
   mostrarModal = false;
   mensajeCambio = '';
   mostrarMensaje = false;
-  private cambioDesdeBoton = false;
-  hideAfterMinutes =  1; // Numero de minutos tras los cuales ocultar la orden si está finalizada o cancelada
+  hideAfterMinutes = 1;
   imageUrlsByMenuItemId: { [menuItemId: number]: SafeUrl | null } = {};
   modifierImageUrlsById: { [modifierId: number]: SafeUrl | null } = {};
   shouldShow = true;
   mensajeTimeout: ReturnType<typeof setTimeout> | undefined;
-  private refreshIntervalId: ReturnType<typeof setInterval> | undefined; // Para refrescar cada minuto
+  private refreshIntervalId: ReturnType<typeof setInterval> | undefined;
   ocultadaLocalmente = false;
-  
   private readonly defaultImagePath = 'assets/images/Loading_icon.gif';
-
-  ordenesOriginales: Order[] = [];
-  ordenesVisibles: Order[] = [];
   private fetchedMenuItemIds = new Set<number>();
   private fetchedModifierIds = new Set<number>();
   private fetchedTeacherIds = new Set<number>();
-  @Output() hideOrder = new EventEmitter<number>();
+  private static menuItemCache: { [id: number]: any } = {};
+  private static modifierCache: { [id: number]: any } = {};
 
-  
   constructor(
     private orderService: OrderService,
     private menuItemService: MenuItemService,
     private modifierService: ModifierService,
     private teacherService: TeacherService,
     private sanitizer: DomSanitizer,
+    private menuCache: MenuCacheService,
+    private teacherCache: TeacherCacheService,
     private cdr: ChangeDetectorRef
   ) {}
-
+  
   ngOnInit(): void {
+    this.resetFetchedCaches();
+    this.fetchMissingData();
     this.preloadImages();
-     this.fetchMissingMenuItems();
-     this.fetchTeacher();
-    // Al iniciar, revisa si esta orden está en la lista de ocultadas:
     this.ocultadaLocalmente = this.estaOcultadaLocalmente();
 
     this.refreshIntervalId = setInterval(() => {
-      if (!this.shouldShowOrder()) {
+      const shouldBeShown = this.shouldShowOrder();
+      const isLocallyHidden = this.ocultadaLocalmente;
+      const isInLocalStorage = this.getOrdenesOcultas().includes(this.order.id);
+
+      if (!shouldBeShown || (isLocallyHidden && isInLocalStorage)) {
         this.hideOrder.emit(this.order.id);
-      } else if (this.ocultadaLocalmente) {
-        // Si fue ocultada manualmente pero ya fue reactivada, no emitir
-        const ocultas = this.getOrdenesOcultas();
-        if (!ocultas.includes(this.order.id)) {
-          this.ocultadaLocalmente = false;
-        } else {
-          this.hideOrder.emit(this.order.id);
-        }
+      } else if (isLocallyHidden && !isInLocalStorage) {
+        this.ocultadaLocalmente = false;
       }
     }, 10000);
   }
-   ngOnDestroy(): void {
+
+  ngOnDestroy(): void {
     if (this.refreshIntervalId) {
       clearInterval(this.refreshIntervalId);
     }
   }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['order'] && this.order) {
-      this.loadTeacherIfNeeded();
+      this.resetFetchedCaches();
+      this.fetchMissingData();
+      this.preloadImages();
     }
   }
-  private loadTeacherIfNeeded(): void {
-    if (!this.order.teacher && this.order.teacherId) {
-      this.teacherService.getTeacherById(this.order.teacherId).subscribe({
-        next: (teacher: Teacher) => {
-          this.order.teacher = teacher;
-          this.cdr.detectChanges();
-        },
-        error: err => {
-          console.error('Error cargando el profesor:', err);
+
+  /** Unifica la carga de teacher, menuItems y modifiers faltantes */
+  private fetchMissingData(): void {
+    this.isLoading = true;
+    const menuItemIds = new Set<number>();
+    const modifierIds = new Set<number>();
+    const observables = [];
+
+    // Teacher
+    if (this.order.teacherId && !this.order.teacher) {
+      const teacher$ = this.teacherService.getTeacherById(this.order.teacherId).pipe(
+        catchError(() => of(null))
+      );
+      observables.push(teacher$);
+    }
+
+    // OrderLines
+    this.order.orderLines.forEach(line => {
+      if (line.menuItemId && (!line.menuItem || !line.menuItem.name)) {
+        menuItemIds.add(line.menuItemId);
+      }
+      line.lineModifiers?.forEach(mod => {
+        if (mod.modifierId != null && (!mod.modifier || !mod.modifier.name)) {
+          modifierIds.add(mod.modifierId);
         }
       });
-    }
+    });
+
+    const menuItems$ = menuItemIds.size > 0
+      ? forkJoin(Array.from(menuItemIds).map(id =>
+          this.menuItemService.getMenuItemById(id).pipe(catchError(() => of(null)))
+        ))
+      : of([]);
+
+    const modifiers$ = modifierIds.size > 0
+      ? forkJoin(Array.from(modifierIds).map(id =>
+          this.modifierService.getModifierById(id).pipe(catchError(() => of(null)))
+        ))
+      : of([]);
+
+    forkJoin([menuItems$, modifiers$, ...(observables as any)]).subscribe((results: any[]) => {
+      const menuItems = results[0] || [];
+      const modifiers = results[1] || [];
+      const teacher = results.length > 2 ? results[2] : null;
+
+      if (teacher) {
+        this.order.teacher = teacher;
+        this.teacherCache.teachers[teacher.id] = teacher;
+      }
+
+      // GUARDA EN CACHE
+      (menuItems as any[]).forEach(item => {
+        if (item) this.menuCache.menuItems[item.id] = item;
+      });
+      this.order.orderLines.forEach(line => {
+        if (line.menuItemId && (!line.menuItem || !line.menuItem.name)) {
+          const found = (menuItems as any[]).find(item => item && item.id === line.menuItemId);
+          if (found) line.menuItem = found;
+        }
+      });
+
+      (modifiers as any[]).forEach(mod => {
+        if (mod) this.menuCache.modifiers[mod.id] = mod;
+      });
+      this.order.orderLines.forEach(line => {
+        line.lineModifiers?.forEach(mod => {
+          if (mod.modifierId != null && (!mod.modifier || !mod.modifier.name)) {
+            const found = (modifiers as any[]).find(m => m && m.id === mod.modifierId);
+            if (found) mod.modifier = found;
+          }
+        });
+      });
+
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    });
   }
-  private fetchTeacher(): void {
-      const teacherId = this.order.teacher?.id;
-      // Solo si no hay profesor o no tiene nombre y hay teacherId y no se ha pedido ya
-      if ((!this.order.teacher || !this.order.teacher.name) && teacherId && !this.fetchedTeacherIds.has(teacherId)) {
-        this.fetchedTeacherIds.add(teacherId);
-        this.teacherService.getTeacherById(teacherId).subscribe({
-          next: (teacher) => {
-            this.order.teacher = teacher;
+  preloadImages(): void {
+    if (!this.order || !this.order.orderLines) return;
+
+    this.order.orderLines.forEach(line => {
+      const menuItemId = line.menuItemId;
+      if (menuItemId && !this.imageUrlsByMenuItemId[menuItemId]) {
+        this.menuItemService.getMenuItemImage(menuItemId).subscribe({
+          next: (blob: Blob) => {
+            const objectURL = URL.createObjectURL(blob);
+            this.imageUrlsByMenuItemId[menuItemId] = this.sanitizer.bypassSecurityTrustUrl(objectURL);
             this.cdr.detectChanges();
           },
-          error: (err) => {
-            console.error(`Error al cargar Teacher con ID ${teacherId}:`, err);
+          error: () => {
+            this.imageUrlsByMenuItemId[menuItemId] = this.defaultImagePath;
+            this.cdr.detectChanges();
           }
         });
       }
-    }
-  private fetchMissingMenuItems(): void {
-  if (!this.order?.orderLines) return;
-
-  this.order.orderLines.forEach(line => {
-    const id = line.menuItemId;
-    if (!line.menuItem && id && !this.fetchedMenuItemIds.has(id)) {
-      this.fetchedMenuItemIds.add(id); // evita repetir
-      this.menuItemService.getMenuItemById(id).subscribe({
-        next: (menuItem) => {
-          line.menuItem = menuItem;
-          this.loadImageByType(menuItem.id, menuItem.id, 'menuItem');
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error(`Error al cargar MenuItem con ID ${id}:`, err);
-        }
-      });
-    }
-  });
-}
-  private preloadImages(): void {
-    if (!this.order?.orderLines) return;
-
-    this.order.orderLines.forEach(line => {
-      const menuItem = line.menuItem;
-      if (menuItem?.id != null) {
-        this.loadImageByType(menuItem.id, menuItem.id, 'menuItem');
-      }
-
-      line.lineModifiers?.forEach(mod => {
-        const id = mod.modifier?.id;
-        if (id && mod.modifier?.imageUrl && !this.fetchedModifierIds.has(id)) {
-          this.fetchedModifierIds.add(id);
-          this.loadImageByType(id, id, 'modifier');
+      line.lineModifiers?.forEach(modifier => {
+        const modifierId = modifier.modifierId;
+        if (modifierId && !this.modifierImageUrlsById[modifierId]) {
+          this.modifierService.getModifierImage(modifierId).subscribe({
+            next: (blob: Blob) => {
+              const objectURL = URL.createObjectURL(blob);
+              this.modifierImageUrlsById[modifierId] = this.sanitizer.bypassSecurityTrustUrl(objectURL);
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              this.modifierImageUrlsById[modifierId] = this.defaultImagePath;
+              this.cdr.detectChanges();
+            }
+          });
         }
       });
     });
   }
 
-  private loadImageByType(id: number,imageUrlOrId: string | number,type: 'menuItem' | 'modifier'): void {
-      const cache =
-        type === 'menuItem' ? this.imageUrlsByMenuItemId : this.modifierImageUrlsById;
-
-      if (cache[id]) return;
-
-      if (type === 'menuItem') {
-        // Ya tienes el ID, puedes pedir imagen directamente
-        this.menuItemService.getMenuItemImage(id).subscribe({
-          next: (blob: Blob) => {
-            const objectURL = URL.createObjectURL(blob);
-            const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectURL);
-            this.imageUrlsByMenuItemId[id] = safeUrl;
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            console.error(`Error al cargar imagen de MenuItem con ID ${id}:`, err);
-            this.imageUrlsByMenuItemId[id] = null;
-            this.cdr.detectChanges();
-          }
-        });
-      } else {
-        // MODIFIER: verificar si ya está cargado el objeto completo
-        const maybeId = typeof imageUrlOrId === 'number' ? imageUrlOrId : id;
-
-        // Si no hay imageUrl, buscamos el modifier completo
-        this.modifierService.getModifierById(maybeId).subscribe({
-          next: (modifier) => {
-            const modifierImageUrl = modifier.imageUrl;
-            if (!modifierImageUrl) {
-              this.modifierImageUrlsById[id] = null;
-              this.cdr.detectChanges();
-              return;
-            }
-
-            this.modifierService.getModifierImage(id).subscribe({
-              next: (blob: Blob) => {
-                const objectURL = URL.createObjectURL(blob);
-                const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectURL);
-                this.modifierImageUrlsById[id] = safeUrl;
-                this.cdr.detectChanges();
-              },
-              error: (err) => {
-                console.error(`Error al cargar imagen del modifier con ID ${id}:`, err);
-                this.modifierImageUrlsById[id] = null;
-                this.cdr.detectChanges();
-              }
-            });
-          },
-          error: (err) => {
-            console.error(`Error al cargar datos del modifier con ID ${maybeId}:`, err);
-            this.modifierImageUrlsById[id] = null;
-            this.cdr.detectChanges();
-          }
-        });
-      }
-    }
-
-
-  getImagesFromOrder(menuItem: { id: number, name: string }): SafeUrl[] {
-    const images: SafeUrl[] = [];
-    const id = menuItem.id;
-    const name = menuItem.name?.toLowerCase() || '';
-
-    const baseImage = this.imageUrlsByMenuItemId[id];
-    if (baseImage) {
-      images.push(baseImage);
-    } else {
-      images.push(this.getStaticImage());
-    }
-
-    if (['poleo', 'manzanilla'].some(t => name.includes(t))) {
-      images.push(this.getStaticImage('te.png'));
-    }
-
-    if (name.includes('café con leche') || name.includes('cortado')) {
-      images.push(this.getStaticImage('leche.png'));
-    }
-
-    return images;
-  }
-
-  getStaticImage(filename?: string): SafeUrl {
-    const file = filename || this.defaultImagePath.split('/').pop(); // "Loading_icon.gif"
-    const fullPath = `assets/images/${file}`;
-    return this.sanitizer.bypassSecurityTrustUrl(fullPath);
-  }
-
-  getModifierImage(modifierId: number): SafeUrl | null {
-    return this.modifierImageUrlsById[modifierId] || null;
-  }
-
-  getModifierImages(modifierId: number, name: string): SafeUrl[] {
-    const image = this.getModifierImage(modifierId);
-    const images: SafeUrl[] = [];
-
-    if (image) images.push(image);
-
-    const lower = name.toLowerCase();
-    if (lower.includes('extra') || lower.includes('queso')) {
-      const extraImg = this.getStaticImage('extra.png');
-      if (extraImg) images.push(extraImg);
-    }
-
-    return images.length > 0 ? images : [this.getStaticImage()!];
+  private resetFetchedCaches(): void {
+    this.fetchedMenuItemIds.clear();
+    this.fetchedModifierIds.clear();
+    this.fetchedTeacherIds.clear();
   }
 
   abrirModalEstado(): void {
@@ -274,59 +224,92 @@ export class OrderCardComponent implements OnInit, OnDestroy {
       this.mensajeCambio = 'Estado actualizado correctamente';
       this.mostrarMensaje = true;
       this.cdr.detectChanges();
-
       setTimeout(() => {
         this.ocultarMensajeConAnimacion();
         resolve();
       }, 5000);
     });
   }
-
-  cambiarEstadoA(nuevoEstado: OrderStatusString): void {
-    this.cambioDesdeBoton = true;
-    this.isUpdating = true;
-
-    this.cerrarModalEstado();
-
-    this.mensajeCambio = '⏳ Actualizando estado...';
-    this.mostrarMensaje = true;
-    this.cdr.detectChanges();
-
-    this.orderService.changeStatus(this.order.id, nuevoEstado).subscribe({
-      next: (updatedOrder) => {
-        this.order.status = updatedOrder.status;
-
-        // Actualizamos la fecha de cambio de estado si es FINALIZADO o CANCELADO
-        if (updatedOrder.status === 'FINALIZADO' || updatedOrder.status === 'CANCELADO') {
-          this.order.statusChangedAt = new Date();
-        } else {
-          this.order.statusChangedAt = null;
-        }
-
-        this.statusChange.emit(updatedOrder);
-
-        this.mensajeCambio = 'Estado actualizado correctamente';
-        this.cdr.detectChanges();
-
-        this.setMensajeOcultoConDelay(3000);
-      },
-      error: (err) => {
-        console.error('Error al cambiar estado:', err);
-
-        this.mensajeCambio = 'Error al cambiar estado';
-        this.cdr.detectChanges();
-
-        this.setMensajeOcultoConDelay(6000);
-      },
-      complete: () => {
-        this.isUpdating = false;
-      }
-    });
+  
+  getMenuItemName(line: OrderLine): string {
+    return line.menuItem?.name || this.menuCache.menuItems[line.menuItemId]?.name || 'Cargando...';
   }
+  getModifierName(mod: any): string {
+    return mod.modifier?.name || this.menuCache.modifiers[mod.modifierId]?.name || 'Modificador';
+  }
+  getTeacherName(): string {
+    return this.order.teacher?.name || this.teacherCache.teachers[this.order.teacherId]?.name || 'Cargando...';
+  }
+  getTeacherSurnames(): string {
+    return this.order.teacher?.surnames || this.teacherCache.teachers[this.order.teacherId]?.surnames || '';
+  }
+ async cambiarEstadoA(nuevoEstado: OrderStatusString): Promise<void> {
+  this.isUpdating = true;
+  this.cerrarModalEstado();
+  this.mensajeCambio = 'Actualizando estado...';
+  this.mostrarMensaje = true;
+  this.cdr.detectChanges();
+
+  this.orderService.changeStatus(this.order.id, nuevoEstado).subscribe({
+    next: async (updatedOrder) => {
+      this.order.status = updatedOrder.status;
+      this.order.statusChangedAt = updatedOrder.statusChangedAt || new Date();
+
+      if (updatedOrder.teacherId) {
+          this.order.teacher =
+            this.teacherCache.teachers[updatedOrder.teacherId] ||
+            this.order.teacher ||
+            undefined;
+        }
+      if (updatedOrder.orderLines) {
+        // NO reemplaces el array, solo actualiza los objetos existentes
+        updatedOrder.orderLines.forEach((updatedLine: OrderLine) => {
+          const currentLine = this.order.orderLines.find(l => l.id === updatedLine.id);
+          if (currentLine) {
+            currentLine.quantity = updatedLine.quantity;
+
+            // Producto: nunca pierdas el objeto ya cargado
+            if (updatedLine.menuItemId) {
+              currentLine.menuItem =
+                currentLine.menuItem ||
+                this.menuCache.menuItems[updatedLine.menuItemId] ||
+                { id: updatedLine.menuItemId };
+            }
+
+            // Modificadores: NO reemplaces el array, solo actualiza los objetos
+            if (updatedLine.lineModifiers && currentLine.lineModifiers) {
+              updatedLine.lineModifiers.forEach(updatedMod => {
+                const currentMod = currentLine.lineModifiers?.find(m => m.id === updatedMod.id);
+                if (currentMod && updatedMod.modifierId) {
+                  currentMod.modifier = currentMod.modifier ||
+                    this.menuCache.modifiers[updatedMod.modifierId] ||
+                    { id: updatedMod.modifierId };
+                }
+              });
+              
+            }
+          }
+        });
+      }
+
+      // NO reemplaces los arrays, solo actualiza los objetos
+      this.isUpdating = false;
+      this.cdr.detectChanges();
+      this.statusChange.emit(this.order);
+      this.mensajeCambio = 'Estado actualizado correctamente';
+      this.setMensajeOcultoConDelay(3000);
+    },
+    error: (err) => {
+      this.isUpdating = false;
+      console.error('Error actualizando estado:', err);
+      this.mensajeCambio = 'Error actualizando estado';
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   private setMensajeOcultoConDelay(ms: number): void {
     clearTimeout(this.mensajeTimeout);
-
     this.mensajeTimeout = setTimeout(() => {
       this.ocultarMensajeConAnimacion();
     }, ms);
@@ -381,53 +364,36 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   getOrderDateSpeech(order: Order): string {
-    if (!order.orderDate) {
-      return '';
-    }
+    if (!order.orderDate) return '';
     const date = new Date(order.orderDate as string);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    // Por defecto, devuelve la hora en formato "HH y mm"
-    return `Hora: ${hours} y ${minutes}`;
+    return `Hora: ${date.getHours()} y ${date.getMinutes()}`;
   }
 
-  // Nuevo método para decidir si mostrar o no la orden:
   shouldShowOrder(): boolean {
     if (this.order.status === 'FINALIZADO' || this.order.status === 'CANCELADO') {
-      if (!this.order.statusChangedAt) {
-        return true;
-      }
-
+      if (!this.order.statusChangedAt) return true;
       const ahora = new Date();
-      const diffMs = ahora.getTime() - new Date(this.order.statusChangedAt).getTime();
-      const diffMinutos = diffMs / 60000;
-
+      const diffMinutos = (ahora.getTime() - new Date(this.order.statusChangedAt).getTime()) / 60000;
       return diffMinutos < this.hideAfterMinutes;
     }
     return true;
   }
-  // Método para comprobar si la orden está marcada para ocultar localmente
+
   estaOcultadaLocalmente(): boolean {
-    const ocultas = this.getOrdenesOcultas();
-    return ocultas.includes(this.order.id);
+    return this.getOrdenesOcultas().includes(this.order.id);
   }
 
-  // Recuperar array de IDs del localStorage
   getOrdenesOcultas(): number[] {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   }
 
-  // Guardar array actualizado en localStorage
   setOrdenesOcultas(ids: number[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
   }
 
-  // Método modificado para ocultar la orden (botón)
   confirmarOcultarOrden(): void {
-    const confirmacion = confirm('¿Estás seguro de que quieres ocultar esta orden?');
-    if (confirmacion) {
-      // Marca localmente la orden como ocultada
+    if (confirm('¿Estás seguro de que quieres ocultar esta orden?')) {
       const ocultas = this.getOrdenesOcultas();
       if (!ocultas.includes(this.order.id)) {
         ocultas.push(this.order.id);
@@ -437,6 +403,7 @@ export class OrderCardComponent implements OnInit, OnDestroy {
       this.hideOrder.emit(this.order.id);
     }
   }
+
   mostrarOrdenOcultada(): void {
     const ocultas = this.getOrdenesOcultas();
     const index = ocultas.indexOf(this.order.id);
@@ -448,7 +415,44 @@ export class OrderCardComponent implements OnInit, OnDestroy {
     this.shouldShow = true;
     this.cdr.detectChanges();
   }
+
   get mostrarBotonOcultar(): boolean {
     return this.order.status === 'FINALIZADO' || this.order.status === 'CANCELADO';
+  }
+
+  // Imágenes
+  getImagesFromOrder(menuItem: { id: number, name: string }): SafeUrl[] {
+    const images: SafeUrl[] = [];
+    const id = menuItem.id;
+    const name = menuItem.name?.toLowerCase() || '';
+    const baseImage = this.imageUrlsByMenuItemId[id];
+    images.push(baseImage || this.getStaticImage());
+    if (['poleo', 'manzanilla'].some(t => name.includes(t))) {
+      images.push(this.getStaticImage('te.png'));
+    }
+    if (name.includes('café con leche') || name.includes('cortado')) {
+      images.push(this.getStaticImage('leche.png'));
+    }
+    return images;
+  }
+
+  getStaticImage(filename?: string): SafeUrl {
+    const file = filename || this.defaultImagePath.split('/').pop();
+    return this.sanitizer.bypassSecurityTrustUrl(`assets/images/${file}`);
+  }
+
+  getModifierImage(modifierId: number): SafeUrl | null {
+    return this.modifierImageUrlsById[modifierId] || null;
+  }
+
+  getModifierImages(modifierId: number, name: string): SafeUrl[] {
+    const image = this.getModifierImage(modifierId);
+    const images: SafeUrl[] = [];
+    if (image) images.push(image);
+    const lower = name.toLowerCase();
+    if (lower.includes('extra') || lower.includes('queso')) {
+      images.push(this.getStaticImage('extra.png'));
+    }
+    return images.length > 0 ? images : [this.getStaticImage()];
   }
 }
