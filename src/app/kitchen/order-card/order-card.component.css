@@ -15,8 +15,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s ease, min-height 0.2s;
   position: relative;
-  min-height: 200px;      /* Ajusta según tu contenido */
-  max-width: 540px;       /* Para quepan 3 en la mayoría de pantallas */
+  min-height: 200px;    
+  max-width: 540px;      
   min-width: 300px;
   width: 100%;
   margin: 12px;
@@ -80,7 +80,7 @@
 }
 .order-info p strong {
   display: inline-block;
-  min-width: 120px; /* Ajusta según el nombre más largo esperado */
+  min-width: 120px;
 }
 .order-info p.cargando {
   opacity: 0.5;
@@ -126,7 +126,7 @@ ul {
 .menu-item-images {
   display: flex;
   gap: 4px;
-  min-width: 110px; /* 2 imágenes de 50px + gap */
+  min-width: 110px; 
   min-height: 50px;
   align-items: center;
   justify-content: flex-start;

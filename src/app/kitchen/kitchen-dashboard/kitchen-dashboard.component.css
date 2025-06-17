@@ -159,7 +159,7 @@ h2 {
 }
 .image-stack {
   display: grid;
-  grid-template-columns: repeat(2, auto); /* ← 2 columnas */
+  grid-template-columns: repeat(2, auto); 
   gap: 10px;
   justify-content: center;
 }
@@ -167,7 +167,7 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  max-width: 450px; /* ajusta según el tamaño de los items */
+  max-width: 450px; 
   margin: auto;
   margin-top: 20px;
 }
@@ -345,18 +345,18 @@ h2 {
 }
 
 @media (max-width: 600px) {
-  nav.tabs {
+  /* nav.tabs {
     flex-direction: column;
     height: auto;
     padding: 0.2rem;
-  }
-  .tab-btn {
+  } */
+  /* .tab-btn {
     width: 100%;
     min-width: 0;
     margin-bottom: 4px;
     font-size: 1rem;
     height: 36px;
-  }
+  } */
   .panel {
     padding: 0.5rem;
   }
