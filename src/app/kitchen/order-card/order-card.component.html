@@ -19,7 +19,7 @@
       </span>
     </h2>
 
-    <p [class.cargando]="getTeacherName() === 'Cargando...'">
+    <p [class.cargando]="getTeacherName() === 'Cargando...'" (click)="speak( getTeacherName() + ' ' + getTeacherSurnames())">
     <strong>Profesor/a:</strong> {{ getTeacherName() }} {{ getTeacherSurnames() }}
   </p>
     <ng-template #loadingTeacher>

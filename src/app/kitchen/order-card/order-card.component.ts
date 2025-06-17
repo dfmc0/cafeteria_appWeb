@@ -450,9 +450,6 @@ export class OrderCardComponent implements OnInit, OnDestroy {
     const images: SafeUrl[] = [];
     if (image) images.push(image);
     const lower = name.toLowerCase();
-    if (lower.includes('extra') || lower.includes('queso')) {
-      images.push(this.getStaticImage('extra.png'));
-    }
     return images.length > 0 ? images : [this.getStaticImage()];
   }
 }
